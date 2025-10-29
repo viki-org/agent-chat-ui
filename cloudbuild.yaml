@@ -1,0 +1,23 @@
+steps:
+  - id: buildDockerImage
+    name: "gcr.io/cloud-builders/docker"
+    entrypoint: bash
+    args:
+      - "-c"
+      - "-e"
+      - |
+        docker build \
+        -t ${_REGISTRY}/${_IMAGE_NAME}:${_MAIN_VERSION}-${_ITERATION} \
+        -t ${_ASIA_REGISTRY}/${_IMAGE_NAME}:${_MAIN_VERSION}-${_ITERATION} \
+        .
+
+images:
+  - ${_REGISTRY}/${_IMAGE_NAME}
+  - ${_ASIA_REGISTRY}/${_IMAGE_NAME}
+
+substitutions:
+  _REGISTRY: "gcr.io/viki-images"
+  _ASIA_REGISTRY: "asia.gcr.io/viki-images"
+  _IMAGE_NAME: agent-chat-ui
+
+timeout: 3600s
