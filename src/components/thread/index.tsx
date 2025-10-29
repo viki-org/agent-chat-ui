@@ -45,6 +45,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { useThreads } from "@/providers/Thread";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -112,6 +113,7 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
+  const { gcpIapUid } = useThreads();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -214,9 +216,13 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    const metadata =
+      !threadId && gcpIapUid ? { gcp_iap_uid: gcpIapUid } : undefined;
+
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
+        metadata,
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,

@@ -6,14 +6,19 @@ steps:
       - "-c"
       - "-e"
       - |
+        _BRANCH_IMAGE_TAG=$(echo $BRANCH_NAME | sed 's/[^a-zA-Z0-9]/-/g')
         docker build \
-        -t ${_REGISTRY}/${_IMAGE_NAME}:${_MAIN_VERSION}-${_ITERATION} \
-        -t ${_ASIA_REGISTRY}/${_IMAGE_NAME}:${_MAIN_VERSION}-${_ITERATION} \
+        --label org.opencontainers.image.revision=${COMMIT_SHA} \
+        --label org.opencontainers.image.source=github.com/viki-org/agent-chat-ui \
+        -t ${_REGISTRY}/${_IMAGE_NAME}:${SHORT_SHA} \
+        -t ${_REGISTRY}/${_IMAGE_NAME}:$${_BRANCH_IMAGE_TAG} \
+        -t asia.${_REGISTRY}/${_IMAGE_NAME}:${SHORT_SHA} \
+        -t asia.${_REGISTRY}/${_IMAGE_NAME}:$${_BRANCH_IMAGE_TAG} \
         .
 
 images:
-  - ${_REGISTRY}/${_IMAGE_NAME}
   - ${_ASIA_REGISTRY}/${_IMAGE_NAME}
+  - ${_REGISTRY}/${_IMAGE_NAME}
 
 substitutions:
   _REGISTRY: "gcr.io/viki-images"

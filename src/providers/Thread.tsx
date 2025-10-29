@@ -2,6 +2,7 @@ import { validate } from "uuid";
 import { getApiKey } from "@/lib/api-key";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useQueryState } from "nuqs";
+import Cookies from "js-cookie";
 import {
   createContext,
   useContext,
@@ -19,6 +20,7 @@ interface ThreadContextType {
   setThreads: Dispatch<SetStateAction<Thread[]>>;
   threadsLoading: boolean;
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
+  gcpIapUid: string | null;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -33,25 +35,39 @@ function getThreadSearchMetadata(
   }
 }
 
+function getGcpIapUid() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return Cookies.get("gcp_iap_uid") ?? null;
+}
+
 export function ThreadProvider({ children }: { children: ReactNode }) {
   const [apiUrl] = useQueryState("apiUrl");
   const [assistantId] = useQueryState("assistantId");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
+  const [gcpIapUid] = useState<string | null>(getGcpIapUid());
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
     if (!apiUrl || !assistantId) return [];
     const client = createClient(apiUrl, getApiKey() ?? undefined);
 
+    const metadata: Record<string, string> = {
+      ...getThreadSearchMetadata(assistantId),
+    };
+
+    if (gcpIapUid) {
+      metadata.gcp_iap_uid = gcpIapUid;
+    }
+
     const threads = await client.threads.search({
-      metadata: {
-        ...getThreadSearchMetadata(assistantId),
-      },
+      metadata,
       limit: 100,
     });
 
     return threads;
-  }, [apiUrl, assistantId]);
+  }, [apiUrl, assistantId, gcpIapUid]);
 
   const value = {
     getThreads,
@@ -59,6 +75,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     setThreads,
     threadsLoading,
     setThreadsLoading,
+    gcpIapUid,
   };
 
   return (
