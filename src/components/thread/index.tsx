@@ -46,6 +46,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { useThreads } from "@/providers/Thread";
+import { Textarea } from "../ui/textarea";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -93,9 +94,7 @@ function ProfileAvatar({ gcpIapEmail }: { gcpIapEmail: string | null }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div
-            className="flex items-center justify-center mr-4"
-          >
+          <div className="mr-4 flex items-center justify-center">
             <ProfileLogoSVG
               width="30"
               height="30"
@@ -124,6 +123,7 @@ export function Thread() {
     parseAsBoolean.withDefault(false),
   );
   const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const {
     contentBlocks,
     setContentBlocks,
@@ -150,6 +150,12 @@ export function Thread() {
     closeArtifact();
     setArtifactContext({});
   };
+
+  useEffect(() => {
+    if (threadId === null) {
+      inputRef.current?.focus();
+    }
+  }, [threadId]);
 
   useEffect(() => {
     if (!stream.error) {
@@ -280,7 +286,10 @@ export function Thread() {
             className="relative h-full"
             style={{ width: 300 }}
           >
-            <ThreadHistory setThreadId={setThreadId} chatStarted={chatStarted} />
+            <ThreadHistory
+              setThreadId={setThreadId}
+              chatStarted={chatStarted}
+            />
           </div>
         </motion.div>
       </div>
@@ -336,10 +345,10 @@ export function Thread() {
           {chatStarted && (
             <div className="relative z-10 flex items-center justify-between gap-3 p-2">
               <div className="relative flex items-center justify-start gap-2">
-                <div className="absolute left-0 z-10 flex flex-col gap-2 pt-9 ml-2">
+                <div className="absolute left-0 z-10 ml-2 flex flex-col gap-2 pt-9">
                   {(!chatHistoryOpen || !isLargeScreen) && (
                     <Button
-                      className="hover:bg-gray-100 my-2"
+                      className="my-2 hover:bg-gray-100"
                       variant="ghost"
                       onClick={() => setChatHistoryOpen((p) => !p)}
                     >
@@ -468,6 +477,7 @@ export function Thread() {
                         onRemove={removeBlock}
                       />
                       <textarea
+                        ref={inputRef}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onPaste={handlePaste}
