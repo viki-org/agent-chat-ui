@@ -19,7 +19,7 @@ npx create-agent-chat-app
 or
 
 ```bash
-git clone https://github.com/langchain-ai/agent-chat-ui.git
+git clone https://github.com/viki-org/agent-chat-ui.git
 
 cd agent-chat-ui
 ```
@@ -177,7 +177,7 @@ export function Writer(props: {
       </div>
 
       <Artifact title={props.title}>
-        <p className="p-4 whitespace-pre-wrap">{props.content}</p>
+        <p className="whitespace-pre-wrap p-4">{props.content}</p>
       </Artifact>
     </>
   );

@@ -21,6 +21,7 @@ interface ThreadContextType {
   threadsLoading: boolean;
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
   gcpIapUid: string | null;
+  gcpIapEmail: string | null;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -42,12 +43,25 @@ function getGcpIapUid() {
   return Cookies.get("gcp_iap_uid") ?? null;
 }
 
+function getGcpIapEmail() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  const email = Cookies.get("gcp_iap_email") ?? null;
+  const prefix = "accounts.google.com:";
+  if (typeof email === 'string' && email.startsWith(prefix)) {
+    return email.slice(prefix.length);
+  }
+  return email;
+}
+
 export function ThreadProvider({ children }: { children: ReactNode }) {
   const [apiUrl] = useQueryState("apiUrl");
   const [assistantId] = useQueryState("assistantId");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
   const [gcpIapUid] = useState<string | null>(getGcpIapUid());
+  const [gcpIapEmail] = useState<string | null>(getGcpIapEmail());
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
     if (!apiUrl || !assistantId) return [];
@@ -76,6 +90,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     threadsLoading,
     setThreadsLoading,
     gcpIapUid,
+    gcpIapEmail,
   };
 
   return (

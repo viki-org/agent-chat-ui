@@ -3,10 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const user_id = request.headers.get("X-Goog-Authenticated-User-Id");
+  const email = request.headers.get("X-Goog-Authenticated-User-Email");
 
   if (user_id) {
     response.cookies.set("gcp_iap_uid", user_id, {
-      httpOnly: false, // So it can be read by client-side script
+      httpOnly: false, // so it can be read by client-side script
+    });
+  }
+  if (email) {
+    response.cookies.set("gcp_iap_email", email, {
+      httpOnly: false, // so it can be read by client-side script
     });
   }
 

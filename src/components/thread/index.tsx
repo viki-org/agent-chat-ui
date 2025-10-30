@@ -30,7 +30,7 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
-import { GitHubSVG } from "../icons/github";
+import { ProfileLogoSVG } from "../icons/profile";
 import {
   Tooltip,
   TooltipContent,
@@ -88,32 +88,29 @@ function ScrollToBottom(props: { className?: string }) {
   );
 }
 
-function OpenGitHubRepo() {
+function ProfileAvatar({ gcpIapEmail }: { gcpIapEmail: string | null }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <a
-            href="https://github.com/langchain-ai/agent-chat-ui"
-            target="_blank"
+          <div
             className="flex items-center justify-center"
           >
-            <GitHubSVG
-              width="24"
-              height="24"
+            <ProfileLogoSVG
+              width="30"
+              height="30"
             />
-          </a>
+          </div>
         </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>Open GitHub repo</p>
+        <TooltipContent side="bottom">
+          <p>{gcpIapEmail}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
-
 export function Thread() {
-  const { gcpIapUid } = useThreads();
+  const { gcpIapUid, gcpIapEmail } = useThreads();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -332,7 +329,7 @@ export function Thread() {
                 )}
               </div>
               <div className="absolute top-2 right-4 flex items-center">
-                <OpenGitHubRepo />
+                <ProfileAvatar gcpIapEmail={gcpIapEmail} />
               </div>
             </div>
           )}
@@ -378,7 +375,7 @@ export function Thread() {
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center">
-                  <OpenGitHubRepo />
+                  <ProfileAvatar gcpIapEmail={gcpIapEmail} />
                 </div>
                 <TooltipIconButton
                   size="lg"
