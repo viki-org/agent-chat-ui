@@ -4,6 +4,7 @@ import { Thread } from "@langchain/langgraph-sdk";
 import { useEffect } from "react";
 
 import { getContentString } from "../utils";
+import { TooltipIconButton } from "../tooltip-icon-button";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import {
   Sheet,
@@ -12,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PanelRightOpen, PanelRightClose } from "lucide-react";
+import { PanelRightOpen, PanelRightClose, SquarePen } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 function ThreadList({
@@ -75,7 +76,13 @@ function ThreadHistoryLoading() {
   );
 }
 
-export default function ThreadHistory() {
+export default function ThreadHistory({
+  setThreadId,
+  chatStarted
+}: {
+  setThreadId: (id: string | null) => void;
+  chatStarted: boolean;
+}) {
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
@@ -110,9 +117,21 @@ export default function ThreadHistory() {
             )}
           </Button>
           <h1 className="text-xl font-semibold tracking-tight">
-            Thread History
+            Chat History
           </h1>
         </div>
+        {chatStarted && (
+          <div className="px-4 w-full">
+            <Button
+              variant="ghost"
+              className="flex w-full items-center justify-start gap-2 rounded-md p-2 text-left font-normal"
+              onClick={() => setThreadId(null)}
+            >
+              <SquarePen className="size-5" />
+              <span>New chat</span>
+            </Button>
+          </div>
+        )}
         {threadsLoading ? (
           <ThreadHistoryLoading />
         ) : (
@@ -132,7 +151,7 @@ export default function ThreadHistory() {
             className="flex lg:hidden"
           >
             <SheetHeader>
-              <SheetTitle>Thread History</SheetTitle>
+              <SheetTitle>Chat History</SheetTitle>
             </SheetHeader>
             <ThreadList
               threads={threads}

@@ -94,7 +94,7 @@ function ProfileAvatar({ gcpIapEmail }: { gcpIapEmail: string | null }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className="flex items-center justify-center"
+            className="flex items-center justify-center mr-4"
           >
             <ProfileLogoSVG
               width="30"
@@ -280,7 +280,7 @@ export function Thread() {
             className="relative h-full"
             style={{ width: 300 }}
           >
-            <ThreadHistory />
+            <ThreadHistory setThreadId={setThreadId} chatStarted={chatStarted} />
           </div>
         </motion.div>
       </div>
@@ -336,10 +336,10 @@ export function Thread() {
           {chatStarted && (
             <div className="relative z-10 flex items-center justify-between gap-3 p-2">
               <div className="relative flex items-center justify-start gap-2">
-                <div className="absolute left-0 z-10">
+                <div className="absolute left-0 z-10 flex flex-col gap-2 pt-9 ml-2">
                   {(!chatHistoryOpen || !isLargeScreen) && (
                     <Button
-                      className="hover:bg-gray-100"
+                      className="hover:bg-gray-100 my-2"
                       variant="ghost"
                       onClick={() => setChatHistoryOpen((p) => !p)}
                     >
@@ -350,12 +350,23 @@ export function Thread() {
                       )}
                     </Button>
                   )}
+                  {!chatHistoryOpen && (
+                    <TooltipIconButton
+                      size="lg"
+                      className="ml-1.5"
+                      tooltip="New chat"
+                      variant="ghost"
+                      onClick={() => setThreadId(null)}
+                    >
+                      <SquarePen className="size-5" />
+                    </TooltipIconButton>
+                  )}
                 </div>
                 <motion.button
                   className="flex cursor-pointer items-center gap-2"
                   onClick={() => setThreadId(null)}
                   animate={{
-                    marginLeft: !chatHistoryOpen ? 48 : 0,
+                    marginLeft: !chatHistoryOpen ? 56 : 0,
                   }}
                   transition={{
                     type: "spring",
@@ -377,15 +388,6 @@ export function Thread() {
                 <div className="flex items-center">
                   <ProfileAvatar gcpIapEmail={gcpIapEmail} />
                 </div>
-                <TooltipIconButton
-                  size="lg"
-                  className="p-4"
-                  tooltip="New thread"
-                  variant="ghost"
-                  onClick={() => setThreadId(null)}
-                >
-                  <SquarePen className="size-5" />
-                </TooltipIconButton>
               </div>
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
