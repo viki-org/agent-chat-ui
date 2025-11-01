@@ -196,7 +196,10 @@ function ThreadList({
             <Button
               variant="ghost"
               disabled={isDeleting || isDuplicating}
-              className="w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75"
+              className={cn(
+                "w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75",
+                t.thread_id === threadId && "bg-accent",
+              )}
               onClick={(e) => {
                 e.preventDefault();
                 onThreadClick?.(t.thread_id);
