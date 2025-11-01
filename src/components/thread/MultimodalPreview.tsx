@@ -1,10 +1,10 @@
 import React from "react";
-import { File, Image as ImageIcon, X as XIcon } from "lucide-react";
-import type { Base64ContentBlock } from "@langchain/core/messages";
+import { File, X as XIcon } from "lucide-react";
+import type { ContentBlock } from "@langchain/core/messages";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 export interface MultimodalPreviewProps {
-  block: Base64ContentBlock;
+  block: ContentBlock.Multimodal.Standard;
   removable?: boolean;
   onRemove?: () => void;
   className?: string;
@@ -18,14 +18,25 @@ export const MultimodalPreview: React.FC<MultimodalPreviewProps> = ({
   className,
   size = "md",
 }) => {
-  // Image block
+  // Helper to get mime type from block (handles both mimeType and mime_type)
+  const getMimeType = (b: any): string | undefined => {
+    return b.mimeType || b.mime_type;
+  };
+
+  // Helper to check if it's base64 data
+  const hasBase64Data = (b: any): boolean => {
+    return "data" in b && b.data;
+  };
+
+  // Image block - new format with mimeType
   if (
     block.type === "image" &&
-    block.source_type === "base64" &&
-    typeof block.mime_type === "string" &&
-    block.mime_type.startsWith("image/")
+    hasBase64Data(block) &&
+    typeof getMimeType(block) === "string" &&
+    getMimeType(block)!.startsWith("image/")
   ) {
-    const url = `data:${block.mime_type};base64,${block.data}`;
+    const mimeType = getMimeType(block)!;
+    const url = `data:${mimeType};base64,${(block as any).data}`;
     let imgClass: string = "rounded-md object-cover h-16 w-16 text-lg";
     if (size === "sm") imgClass = "rounded-md object-cover h-10 w-10 text-base";
     if (size === "lg") imgClass = "rounded-md object-cover h-24 w-24 text-xl";
@@ -52,11 +63,41 @@ export const MultimodalPreview: React.FC<MultimodalPreviewProps> = ({
     );
   }
 
-  // PDF block
+  // Image URL format (from server after conversion)
+  if ((block as any).type === "image_url" && "image_url" in block) {
+    const imageUrl = (block as any).image_url;
+    const url = typeof imageUrl === "string" ? imageUrl : imageUrl.url;
+    let imgClass: string = "rounded-md object-cover h-16 w-16 text-lg";
+    if (size === "sm") imgClass = "rounded-md object-cover h-10 w-10 text-base";
+    if (size === "lg") imgClass = "rounded-md object-cover h-24 w-24 text-xl";
+    return (
+      <div className={cn("relative inline-block", className)}>
+        <Image
+          src={url}
+          alt="uploaded image"
+          className={imgClass}
+          width={size === "sm" ? 16 : size === "md" ? 32 : 48}
+          height={size === "sm" ? 16 : size === "md" ? 32 : 48}
+        />
+        {removable && (
+          <button
+            type="button"
+            className="absolute top-1 right-1 z-10 rounded-full bg-gray-500 text-white hover:bg-gray-700"
+            onClick={onRemove}
+            aria-label="Remove image"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // PDF block - handles both mimeType and mime_type
   if (
     block.type === "file" &&
-    block.source_type === "base64" &&
-    block.mime_type === "application/pdf"
+    hasBase64Data(block) &&
+    getMimeType(block) === "application/pdf"
   ) {
     const filename =
       block.metadata?.filename || block.metadata?.name || "PDF file";

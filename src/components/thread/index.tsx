@@ -39,6 +39,7 @@ import {
 } from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
+import { contentBlockToMessageContent } from "@/lib/multimodal-utils";
 import {
   useArtifactOpen,
   ArtifactContent,
@@ -240,7 +241,7 @@ export function Thread() {
       type: "human",
       content: [
         ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
-        ...contentBlocks,
+        ...contentBlocks.map(contentBlockToMessageContent),
       ] as Message["content"],
     };
 

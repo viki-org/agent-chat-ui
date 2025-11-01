@@ -1,10 +1,10 @@
-import type { Base64ContentBlock } from "@langchain/core/messages";
+import type { ContentBlock } from "@langchain/core/messages";
 import { toast } from "sonner";
 
 // Returns a Promise of a typed multimodal block for images or PDFs
 export async function fileToContentBlock(
   file: File,
-): Promise<Base64ContentBlock> {
+): Promise<ContentBlock.Multimodal.Standard> {
   const supportedImageTypes = [
     "image/jpeg",
     "image/png",
@@ -25,21 +25,19 @@ export async function fileToContentBlock(
   if (supportedImageTypes.includes(file.type)) {
     return {
       type: "image",
-      source_type: "base64",
-      mime_type: file.type,
+      mimeType: file.type,
       data,
       metadata: { name: file.name },
-    };
+    } as ContentBlock.Multimodal.Image;
   }
 
   // PDF
   return {
     type: "file",
-    source_type: "base64",
-    mime_type: "application/pdf",
+    mimeType: "application/pdf",
     data,
     metadata: { filename: file.name },
-  };
+  } as ContentBlock.Multimodal.File;
 }
 
 // Helper to convert File to base64 string
@@ -56,13 +54,27 @@ export async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Type guard for Base64ContentBlock
+// Type guard for ContentBlock.Multimodal.Standard
+// Also handles legacy format and server responses
 export function isBase64ContentBlock(
   block: unknown,
-): block is Base64ContentBlock {
+): block is ContentBlock.Multimodal.Standard {
   if (typeof block !== "object" || block === null || !("type" in block))
     return false;
-  // file type (legacy)
+
+  // New format: file type with mimeType
+  if (
+    (block as { type: unknown }).type === "file" &&
+    "data" in block &&
+    "mimeType" in block &&
+    typeof (block as { mimeType?: unknown }).mimeType === "string" &&
+    ((block as { mimeType: string }).mimeType.startsWith("image/") ||
+      (block as { mimeType: string }).mimeType === "application/pdf")
+  ) {
+    return true;
+  }
+
+  // Legacy format: file type with mime_type and source_type (from server)
   if (
     (block as { type: unknown }).type === "file" &&
     "source_type" in block &&
@@ -74,7 +86,19 @@ export function isBase64ContentBlock(
   ) {
     return true;
   }
-  // image type (new)
+
+  // New format: image type with mimeType
+  if (
+    (block as { type: unknown }).type === "image" &&
+    "data" in block &&
+    "mimeType" in block &&
+    typeof (block as { mimeType?: unknown }).mimeType === "string" &&
+    (block as { mimeType: string }).mimeType.startsWith("image/")
+  ) {
+    return true;
+  }
+
+  // Legacy format: image type with mime_type and source_type (from server)
   if (
     (block as { type: unknown }).type === "image" &&
     "source_type" in block &&
@@ -85,5 +109,52 @@ export function isBase64ContentBlock(
   ) {
     return true;
   }
+
+  // Image URL format (converted images from server)
+  if (
+    (block as { type: unknown }).type === "image_url" &&
+    "image_url" in block
+  ) {
+    return true;
+  }
+
   return false;
+}
+
+// Convert ContentBlock.Multimodal.Standard to SDK's MessageContent format
+// Note: The SDK's TypeScript types only officially support text and image_url,
+// but the backend can handle additional content block types (like PDFs).
+// For PDFs, we convert back to the legacy format for backward compatibility.
+export function contentBlockToMessageContent(
+  block: ContentBlock.Multimodal.Standard,
+):
+  | { type: "image_url"; image_url: string }
+  | {
+      type: "file";
+      source_type: "base64";
+      mime_type: string;
+      data: string;
+      metadata?: Record<string, any>;
+    } {
+  if (block.type === "image" && "data" in block && block.mimeType) {
+    // Convert base64 data to data URL format for images
+    return {
+      type: "image_url",
+      image_url: `data:${block.mimeType};base64,${block.data}`,
+    };
+  }
+
+  // For files (PDFs), convert to the legacy Base64ContentBlock format
+  // that the backend expects
+  if (block.type === "file" && "data" in block && block.mimeType) {
+    return {
+      type: "file",
+      source_type: "base64",
+      mime_type: block.mimeType,
+      data: block.data as string,
+      metadata: block.metadata,
+    };
+  }
+
+  throw new Error(`Unsupported content block type: ${block.type}`);
 }

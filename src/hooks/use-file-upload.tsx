@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { toast } from "sonner";
-import type { Base64ContentBlock } from "@langchain/core/messages";
+import type { ContentBlock } from "@langchain/core/messages";
 import { fileToContentBlock } from "@/lib/multimodal-utils";
 
 export const SUPPORTED_FILE_TYPES = [
@@ -12,24 +12,27 @@ export const SUPPORTED_FILE_TYPES = [
 ];
 
 interface UseFileUploadOptions {
-  initialBlocks?: Base64ContentBlock[];
+  initialBlocks?: ContentBlock.Multimodal.Standard[];
 }
 
 export function useFileUpload({
   initialBlocks = [],
 }: UseFileUploadOptions = {}) {
   const [contentBlocks, setContentBlocks] =
-    useState<Base64ContentBlock[]>(initialBlocks);
+    useState<ContentBlock.Multimodal.Standard[]>(initialBlocks);
   const dropRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const dragCounter = useRef(0);
 
-  const isDuplicate = (file: File, blocks: Base64ContentBlock[]) => {
+  const isDuplicate = (
+    file: File,
+    blocks: ContentBlock.Multimodal.Standard[],
+  ) => {
     if (file.type === "application/pdf") {
       return blocks.some(
         (b) =>
           b.type === "file" &&
-          b.mime_type === "application/pdf" &&
+          b.mimeType === "application/pdf" &&
           b.metadata?.filename === file.name,
       );
     }
@@ -38,7 +41,7 @@ export function useFileUpload({
         (b) =>
           b.type === "image" &&
           b.metadata?.name === file.name &&
-          b.mime_type === file.type,
+          b.mimeType === file.type,
       );
     }
     return false;
