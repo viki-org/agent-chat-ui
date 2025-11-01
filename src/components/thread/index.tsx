@@ -413,7 +413,12 @@ export function Thread() {
                       className="ml-1.5"
                       tooltip="New chat"
                       variant="ghost"
-                      onClick={() => setThreadId(null)}
+                      onClick={() => {
+                        if (threadId) {
+                          setIsTemporaryMode(false);
+                        }
+                        setThreadId(null);
+                      }}
                     >
                       <SquarePen className="size-5" />
                     </TooltipIconButton>
@@ -421,7 +426,12 @@ export function Thread() {
                 </div>
                 <motion.button
                   className="flex cursor-pointer items-center gap-2"
-                  onClick={() => setThreadId(null)}
+                  onClick={() => {
+                    if (threadId) {
+                      setIsTemporaryMode(false);
+                    }
+                    setThreadId(null);
+                  }}
                   animate={{
                     marginLeft: !chatHistoryOpen ? 56 : 0,
                   }}

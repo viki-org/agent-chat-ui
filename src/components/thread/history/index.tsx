@@ -151,12 +151,14 @@ function ThreadList({
     deletingThreadIds,
     duplicateThread,
     duplicatingThreadIds,
+    setIsTemporaryMode,
   } = useThreads();
   const [openPopupId, setOpenPopupId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
     deleteThread(id);
     if (threadId === id) {
+      setIsTemporaryMode(false);
       setThreadId(null);
     }
   };
@@ -259,7 +261,7 @@ export default function ThreadHistory({
     parseAsBoolean.withDefault(false),
   );
 
-  const { getThreads, threads, setThreads, threadsLoading, setThreadsLoading } =
+  const { getThreads, threads, setThreads, threadsLoading, setThreadsLoading, setIsTemporaryMode } =
     useThreads();
 
   useEffect(() => {
@@ -293,7 +295,10 @@ export default function ThreadHistory({
             <Button
               variant="ghost"
               className="flex w-full items-center justify-start gap-2 rounded-md p-2 text-left font-normal"
-              onClick={() => setThreadId(null)}
+              onClick={() => {
+                setIsTemporaryMode(false);
+                setThreadId(null);
+              }}
             >
               <SquarePen className="size-5" />
               <span>New chat</span>
