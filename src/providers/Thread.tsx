@@ -24,6 +24,7 @@ interface ThreadContextType {
   gcpIapUid: string | null;
   gcpIapEmail: string | null;
   deleteThread: (threadId: string) => Promise<void>;
+  deletingThreadIds: Set<string>;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -62,6 +63,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const [assistantId] = useQueryState("assistantId");
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
+  const [deletingThreadIds, setDeletingThreadIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [gcpIapUid] = useState<string | null>(getGcpIapUid());
   const [gcpIapEmail] = useState<string | null>(getGcpIapEmail());
 
@@ -89,20 +93,53 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     async (threadId: string) => {
       if (!apiUrl) return;
 
+      // Prevent duplicate delete attempts
+      if (deletingThreadIds.has(threadId)) {
+        return;
+      }
+
+      // Mark thread as being deleted
+      setDeletingThreadIds((prev) => new Set(prev).add(threadId));
+
       const client = createClient(apiUrl, getApiKey() ?? undefined);
 
       try {
-        await client.threads.delete(threadId);
+        // Add timeout to prevent indefinite waiting
+        const deletePromise = client.threads.delete(threadId);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 15000),
+        );
+
+        await Promise.race([deletePromise, timeoutPromise]);
+
         setThreads((prevThreads) =>
           prevThreads.filter((t) => t.thread_id !== threadId),
         );
         toast.success("Chat deleted successfully.");
       } catch (error) {
         console.error("Failed to delete thread:", error);
-        toast.error("Failed to delete chat. Please try again later.");
+        if (error instanceof Error && error.message === "Request timeout") {
+          toast.error(
+            "Delete request timed out. Please check your connection and try again.",
+            {
+              richColors: true,
+            },
+          );
+        } else {
+          toast.error("Failed to delete chat. Please try again later.", {
+            richColors: true,
+          });
+        }
+      } finally {
+        // Always remove from deleting set
+        setDeletingThreadIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(threadId);
+          return newSet;
+        });
       }
     },
-    [apiUrl],
+    [apiUrl, deletingThreadIds],
   );
 
   const value = {
@@ -114,6 +151,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     gcpIapUid,
     gcpIapEmail,
     deleteThread,
+    deletingThreadIds,
   };
 
   return (

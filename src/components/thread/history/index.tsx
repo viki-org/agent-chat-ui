@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   Share,
   Trash2,
+  LoaderCircle,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -29,11 +30,13 @@ function ThreadHistoryItemActions({
   onDelete,
   isOpen,
   setIsOpen,
+  isDeleting,
 }: {
   threadId: string;
   onDelete: (threadId: string) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isDeleting: boolean;
 }) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -86,20 +89,25 @@ function ThreadHistoryItemActions({
         <MoreHorizontal className="h-4 w-4" />
       </Button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+        <div className="bg-popover text-popover-foreground ring-opacity-5 absolute right-0 z-10 mt-2 w-32 rounded-md p-1 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
           <button
             onClick={handleShare}
-            className="flex w-full items-center rounded-sm px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+            className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm"
           >
             <Share className="mr-3 h-4 w-4" />
             <span>Share</span>
           </button>
           <button
             onClick={handleDelete}
-            className="flex w-full items-center rounded-sm px-3 py-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive-foreground"
+            disabled={isDeleting}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Trash2 className="mr-3 h-4 w-4" />
-            <span>Delete</span>
+            {isDeleting ? (
+              <LoaderCircle className="mr-3 h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="mr-3 h-4 w-4" />
+            )}
+            <span>{isDeleting ? "Deleting..." : "Delete"}</span>
           </button>
         </div>
       )}
@@ -115,7 +123,7 @@ function ThreadList({
   onThreadClick?: (threadId: string) => void;
 }) {
   const [threadId, setThreadId] = useQueryState("threadId");
-  const { deleteThread } = useThreads();
+  const { deleteThread, deletingThreadIds } = useThreads();
   const [openPopupId, setOpenPopupId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
@@ -141,6 +149,7 @@ function ThreadList({
         }
         const isPopupOpen = openPopupId === t.thread_id;
         const isAnotherPopupOpen = openPopupId !== null && !isPopupOpen;
+        const isDeleting = deletingThreadIds.has(t.thread_id);
         return (
           <div
             key={t.thread_id}
@@ -148,11 +157,13 @@ function ThreadList({
               "group relative w-full px-1",
               isPopupOpen && "z-20",
               isAnotherPopupOpen && "pointer-events-none opacity-50",
+              isDeleting && "opacity-75",
             )}
           >
             <Button
               variant="ghost"
-              className="w-full items-start justify-start text-left font-normal pr-8"
+              disabled={isDeleting}
+              className="w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75"
               onClick={(e) => {
                 e.preventDefault();
                 onThreadClick?.(t.thread_id);
@@ -161,11 +172,15 @@ function ThreadList({
               }}
             >
               <p className="truncate text-ellipsis">{itemText}</p>
+              {isDeleting && (
+                <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
+              )}
             </Button>
             <ThreadHistoryItemActions
               threadId={t.thread_id}
               onDelete={handleDelete}
               isOpen={isPopupOpen}
+              isDeleting={isDeleting}
               setIsOpen={(isOpen) => {
                 setOpenPopupId(isOpen ? t.thread_id : null);
               }}
@@ -230,12 +245,10 @@ export default function ThreadHistory({
               <PanelRightClose className="size-5" />
             )}
           </Button>
-          <h1 className="text-xl font-semibold tracking-tight">
-            Chat History
-          </h1>
+          <h1 className="text-xl font-semibold tracking-tight">Chat History</h1>
         </div>
         {chatStarted && (
-          <div className="px-4 w-full">
+          <div className="w-full px-4">
             <Button
               variant="ghost"
               className="flex w-full items-center justify-start gap-2 rounded-md p-2 text-left font-normal"
