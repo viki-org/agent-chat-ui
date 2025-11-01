@@ -3,6 +3,7 @@ import { getApiKey } from "@/lib/api-key";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useQueryState } from "nuqs";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
 import {
   createContext,
   useContext,
@@ -22,7 +23,7 @@ interface ThreadContextType {
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
   gcpIapUid: string | null;
   gcpIapEmail: string | null;
-  deleteThread: (threadId: string) => void;
+  deleteThread: (threadId: string) => Promise<void>;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -50,7 +51,7 @@ function getGcpIapEmail() {
   }
   const email = Cookies.get("gcp_iap_email") ?? null;
   const prefix = "accounts.google.com:";
-  if (typeof email === 'string' && email.startsWith(prefix)) {
+  if (typeof email === "string" && email.startsWith(prefix)) {
     return email.slice(prefix.length);
   }
   return email;
@@ -84,11 +85,25 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     return threads;
   }, [apiUrl, assistantId, gcpIapUid]);
 
-  const deleteThread = useCallback((threadId: string) => {
-    setThreads((prevThreads) =>
-      prevThreads.filter((t) => t.thread_id !== threadId),
-    );
-  }, []);
+  const deleteThread = useCallback(
+    async (threadId: string) => {
+      if (!apiUrl) return;
+
+      const client = createClient(apiUrl, getApiKey() ?? undefined);
+
+      try {
+        await client.threads.delete(threadId);
+        setThreads((prevThreads) =>
+          prevThreads.filter((t) => t.thread_id !== threadId),
+        );
+        toast.success("Chat deleted successfully.");
+      } catch (error) {
+        console.error("Failed to delete thread:", error);
+        toast.error("Failed to delete chat. Please try again later.");
+      }
+    },
+    [apiUrl],
+  );
 
   const value = {
     getThreads,
