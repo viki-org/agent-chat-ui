@@ -107,8 +107,39 @@ function ProfileAvatar({ gcpIapEmail }: { gcpIapEmail: string | null }) {
     </TooltipProvider>
   );
 }
+
+function TemporaryChatToggle({
+  isTemporary,
+  onToggle,
+}: {
+  isTemporary: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center space-x-2">
+      <Switch
+        id="temporary-chat"
+        checked={isTemporary}
+        onCheckedChange={onToggle}
+      />
+      <Label
+        htmlFor="temporary-chat"
+        className="cursor-pointer text-sm text-gray-600"
+      >
+        Temporary Chat
+      </Label>
+    </div>
+  );
+}
+
 export function Thread() {
-  const { gcpIapUid, gcpIapEmail } = useThreads();
+  const {
+    gcpIapUid,
+    gcpIapEmail,
+    isTemporaryMode,
+    setIsTemporaryMode,
+    isCurrentThreadTemporary,
+  } = useThreads();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -218,13 +249,20 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
-    const metadata =
-      !threadId && gcpIapUid ? { gcp_iap_uid: gcpIapUid } : undefined;
+    const metadata: Record<string, string> = {};
+
+    if (!threadId && gcpIapUid) {
+      metadata.gcp_iap_uid = gcpIapUid;
+    }
+
+    if (!threadId && isTemporaryMode) {
+      metadata.temporary = "true";
+    }
 
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
-        metadata,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
@@ -336,7 +374,17 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <div className="absolute top-2 right-4 flex items-center">
+              <div className="absolute top-2 right-4 flex items-center gap-8">
+                {(!threadId || isCurrentThreadTemporary(threadId)) && (
+                  <TemporaryChatToggle
+                    isTemporary={threadId ? true : isTemporaryMode}
+                    onToggle={
+                      threadId
+                        ? () => {}
+                        : () => setIsTemporaryMode((prev) => !prev)
+                    }
+                  />
+                )}
                 <ProfileAvatar gcpIapEmail={gcpIapEmail} />
               </div>
             </div>
@@ -393,7 +441,13 @@ export function Thread() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center">
+                <div className="flex items-center gap-8">
+                  {isCurrentThreadTemporary(threadId) && (
+                    <TemporaryChatToggle
+                      isTemporary={true}
+                      onToggle={() => {}}
+                    />
+                  )}
                   <ProfileAvatar gcpIapEmail={gcpIapEmail} />
                 </div>
               </div>

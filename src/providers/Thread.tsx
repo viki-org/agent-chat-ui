@@ -25,6 +25,9 @@ interface ThreadContextType {
   gcpIapEmail: string | null;
   deleteThread: (threadId: string) => Promise<void>;
   deletingThreadIds: Set<string>;
+  isTemporaryMode: boolean;
+  setIsTemporaryMode: Dispatch<SetStateAction<boolean>>;
+  isCurrentThreadTemporary: (threadId: string | null) => boolean;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -68,6 +71,8 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   );
   const [gcpIapUid] = useState<string | null>(getGcpIapUid());
   const [gcpIapEmail] = useState<string | null>(getGcpIapEmail());
+  const [isTemporaryMode, setIsTemporaryMode] = useState(false);
+  const [allThreadsCache, setAllThreadsCache] = useState<Thread[]>([]);
 
   const getThreads = useCallback(async (): Promise<Thread[]> => {
     if (!apiUrl || !assistantId) return [];
@@ -81,12 +86,18 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
       metadata.gcp_iap_uid = gcpIapUid;
     }
 
-    const threads = await client.threads.search({
+    const allThreads = await client.threads.search({
       metadata,
       limit: 100,
     });
 
-    return threads;
+    // Cache all threads (including temporary ones)
+    setAllThreadsCache(allThreads);
+
+    // Filter out temporary threads for display
+    return allThreads.filter((thread) => {
+      return thread.metadata?.temporary !== "true";
+    });
   }, [apiUrl, assistantId, gcpIapUid]);
 
   const deleteThread = useCallback(
@@ -142,6 +153,15 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     [apiUrl, deletingThreadIds],
   );
 
+  const isCurrentThreadTemporary = useCallback(
+    (threadId: string | null) => {
+      if (!threadId) return false;
+      const thread = allThreadsCache.find((t) => t.thread_id === threadId);
+      return thread?.metadata?.temporary === "true";
+    },
+    [allThreadsCache],
+  );
+
   const value = {
     getThreads,
     threads,
@@ -152,6 +172,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     gcpIapEmail,
     deleteThread,
     deletingThreadIds,
+    isTemporaryMode,
+    setIsTemporaryMode,
+    isCurrentThreadTemporary,
   };
 
   return (
