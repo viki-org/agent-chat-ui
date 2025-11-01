@@ -16,6 +16,29 @@ steps:
         -t asia.${_REGISTRY}/${_IMAGE_NAME}:$${_BRANCH_IMAGE_TAG} \
         .
 
+  - id: triggerSpinnaker
+    waitFor: ['buildDockerImage']
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        [[ "$BRANCH_NAME" == "$_DEPLOYABLE_BRANCH" ]] || exit 0 &&  \
+        gcloud pubsub topics publish spinnaker-webhook \
+          --project "spinnaker-205804" \
+          --message "{
+            \"pubsub_secret\":\"gophercon\",
+            \"application\":\"ops-gpt-ui\",
+            \"artifact\": {
+              \"type\":\"docker/image\",
+              \"name\":\"${_ASIA_REGISTRY}/${_IMAGE_NAME}\",
+              \"version\":\"${SHORT_SHA}\"
+            },
+            \"parameters\": {
+              \"staging_only\": \"$${STAGING_ONLY}\"
+            }
+          }"
+
 images:
   - ${_ASIA_REGISTRY}/${_IMAGE_NAME}
   - ${_REGISTRY}/${_IMAGE_NAME}
@@ -24,5 +47,6 @@ substitutions:
   _REGISTRY: "gcr.io/viki-images"
   _ASIA_REGISTRY: "asia.gcr.io/viki-images"
   _IMAGE_NAME: agent-chat-ui
+  _DEPLOYABLE_BRANCH: main
 
 timeout: 3600s
