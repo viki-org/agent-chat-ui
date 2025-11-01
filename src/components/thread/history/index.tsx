@@ -21,6 +21,7 @@ import {
   Share,
   Trash2,
   LoaderCircle,
+  Copy,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -28,15 +29,19 @@ import { cn } from "@/lib/utils";
 function ThreadHistoryItemActions({
   threadId,
   onDelete,
+  onDuplicate,
   isOpen,
   setIsOpen,
   isDeleting,
+  isDuplicating,
 }: {
   threadId: string;
   onDelete: (threadId: string) => void;
+  onDuplicate: (threadId: string) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   isDeleting: boolean;
+  isDuplicating: boolean;
 }) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +51,12 @@ function ThreadHistoryItemActions({
     currentUrl.searchParams.set("threadId", threadId);
     navigator.clipboard.writeText(currentUrl.toString());
     toast.success("Shareable URL copied to clipboard");
+    setIsOpen(false);
+  };
+
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDuplicate(threadId);
     setIsOpen(false);
   };
 
@@ -89,13 +100,25 @@ function ThreadHistoryItemActions({
         <MoreHorizontal className="h-4 w-4" />
       </Button>
       {isOpen && (
-        <div className="bg-popover text-popover-foreground ring-opacity-5 absolute right-0 z-10 mt-2 w-32 rounded-md p-1 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+        <div className="bg-popover text-popover-foreground ring-opacity-5 absolute right-0 z-10 mt-2 w-36 rounded-md p-1 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
           <button
             onClick={handleShare}
             className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm"
           >
             <Share className="mr-3 h-4 w-4" />
             <span>Share</span>
+          </button>
+          <button
+            onClick={handleDuplicate}
+            disabled={isDuplicating}
+            className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isDuplicating ? (
+              <LoaderCircle className="mr-3 h-4 w-4 animate-spin" />
+            ) : (
+              <Copy className="mr-3 h-4 w-4" />
+            )}
+            <span>{isDuplicating ? "Duplicating..." : "Duplicate"}</span>
           </button>
           <button
             onClick={handleDelete}
@@ -123,7 +146,12 @@ function ThreadList({
   onThreadClick?: (threadId: string) => void;
 }) {
   const [threadId, setThreadId] = useQueryState("threadId");
-  const { deleteThread, deletingThreadIds } = useThreads();
+  const {
+    deleteThread,
+    deletingThreadIds,
+    duplicateThread,
+    duplicatingThreadIds,
+  } = useThreads();
   const [openPopupId, setOpenPopupId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
@@ -131,6 +159,10 @@ function ThreadList({
     if (threadId === id) {
       setThreadId(null);
     }
+  };
+
+  const handleDuplicate = (id: string) => {
+    duplicateThread(id);
   };
 
   return (
@@ -150,6 +182,7 @@ function ThreadList({
         const isPopupOpen = openPopupId === t.thread_id;
         const isAnotherPopupOpen = openPopupId !== null && !isPopupOpen;
         const isDeleting = deletingThreadIds.has(t.thread_id);
+        const isDuplicating = duplicatingThreadIds.has(t.thread_id);
         return (
           <div
             key={t.thread_id}
@@ -162,7 +195,7 @@ function ThreadList({
           >
             <Button
               variant="ghost"
-              disabled={isDeleting}
+              disabled={isDeleting || isDuplicating}
               className="w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75"
               onClick={(e) => {
                 e.preventDefault();
@@ -175,12 +208,17 @@ function ThreadList({
               {isDeleting && (
                 <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
               )}
+              {isDuplicating && (
+                <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
+              )}
             </Button>
             <ThreadHistoryItemActions
               threadId={t.thread_id}
               onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
               isOpen={isPopupOpen}
               isDeleting={isDeleting}
+              isDuplicating={isDuplicating}
               setIsOpen={(isOpen) => {
                 setOpenPopupId(isOpen ? t.thread_id : null);
               }}

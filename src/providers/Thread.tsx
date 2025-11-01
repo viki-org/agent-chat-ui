@@ -25,6 +25,8 @@ interface ThreadContextType {
   gcpIapEmail: string | null;
   deleteThread: (threadId: string) => Promise<void>;
   deletingThreadIds: Set<string>;
+  duplicateThread: (threadId: string) => Promise<Thread | undefined>;
+  duplicatingThreadIds: Set<string>;
   isTemporaryMode: boolean;
   setIsTemporaryMode: Dispatch<SetStateAction<boolean>>;
   isCurrentThreadTemporary: (threadId: string | null) => boolean;
@@ -67,6 +69,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
   const [deletingThreadIds, setDeletingThreadIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [duplicatingThreadIds, setDuplicatingThreadIds] = useState<Set<string>>(
     new Set(),
   );
   const [gcpIapUid] = useState<string | null>(getGcpIapUid());
@@ -153,6 +158,64 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     [apiUrl, deletingThreadIds],
   );
 
+  const duplicateThread = useCallback(
+    async (threadId: string) => {
+      if (!apiUrl) return;
+
+      // Prevent duplicate duplicate attempts
+      if (duplicatingThreadIds.has(threadId)) {
+        return;
+      }
+
+      // Mark thread as being duplicated
+      setDuplicatingThreadIds((prev) => new Set(prev).add(threadId));
+
+      const client = createClient(apiUrl, getApiKey() ?? undefined);
+
+      try {
+        // Add timeout to prevent indefinite waiting
+        const copyPromise = client.threads.copy(threadId);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 15000),
+        );
+
+        const newThread = (await Promise.race([
+          copyPromise,
+          timeoutPromise,
+        ])) as Thread;
+
+        // Refresh the threads list to include the new duplicated thread
+        const updatedThreads = await getThreads();
+        setThreads(updatedThreads);
+
+        toast.success("Chat duplicated successfully.");
+        return newThread;
+      } catch (error) {
+        console.error("Failed to duplicate thread:", error);
+        if (error instanceof Error && error.message === "Request timeout") {
+          toast.error(
+            "Duplicate request timed out. Please check your connection and try again.",
+            {
+              richColors: true,
+            },
+          );
+        } else {
+          toast.error("Failed to duplicate chat. Please try again later.", {
+            richColors: true,
+          });
+        }
+      } finally {
+        // Always remove from duplicating set
+        setDuplicatingThreadIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(threadId);
+          return newSet;
+        });
+      }
+    },
+    [apiUrl, duplicatingThreadIds, getThreads],
+  );
+
   const isCurrentThreadTemporary = useCallback(
     (threadId: string | null) => {
       if (!threadId) return false;
@@ -172,6 +235,8 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     gcpIapEmail,
     deleteThread,
     deletingThreadIds,
+    duplicateThread,
+    duplicatingThreadIds,
     isTemporaryMode,
     setIsTemporaryMode,
     isCurrentThreadTemporary,
