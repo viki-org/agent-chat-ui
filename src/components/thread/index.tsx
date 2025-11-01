@@ -46,7 +46,6 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { useThreads } from "@/providers/Thread";
-import { Textarea } from "../ui/textarea";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -495,7 +494,7 @@ export function Thread() {
                           }
                         }}
                         placeholder="Type your message..."
-                        className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
+                        className="resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                         autoFocus
                       />
 

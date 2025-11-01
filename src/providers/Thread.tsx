@@ -22,6 +22,7 @@ interface ThreadContextType {
   setThreadsLoading: Dispatch<SetStateAction<boolean>>;
   gcpIapUid: string | null;
   gcpIapEmail: string | null;
+  deleteThread: (threadId: string) => void;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -83,6 +84,12 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     return threads;
   }, [apiUrl, assistantId, gcpIapUid]);
 
+  const deleteThread = useCallback((threadId: string) => {
+    setThreads((prevThreads) =>
+      prevThreads.filter((t) => t.thread_id !== threadId),
+    );
+  }, []);
+
   const value = {
     getThreads,
     threads,
@@ -91,6 +98,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     setThreadsLoading,
     gcpIapUid,
     gcpIapEmail,
+    deleteThread,
   };
 
   return (
