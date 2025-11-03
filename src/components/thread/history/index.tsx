@@ -206,6 +206,7 @@ function ThreadList({
                 e.preventDefault();
                 onThreadClick?.(t.thread_id);
                 if (t.thread_id === threadId) return;
+                setIsTemporaryMode(false);
                 setThreadId(t.thread_id);
               }}
             >
