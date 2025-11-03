@@ -302,11 +302,22 @@ export function Thread() {
     (m) => m.type === "ai" || m.type === "tool",
   );
 
+  const isTemporaryActive =
+    isTemporaryMode || isCurrentThreadTemporary(threadId);
+
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div
+      className={cn(
+        "relative flex h-screen w-full overflow-hidden transition-colors duration-300",
+        isTemporaryActive ? "bg-slate-300" : "bg-white",
+      )}
+    >
       <div className="relative hidden lg:flex">
         <motion.div
-          className="absolute z-20 h-full overflow-hidden border-r bg-white"
+          className={cn(
+            "absolute z-20 h-full overflow-hidden border-r transition-colors duration-300",
+            isTemporaryActive ? "border-slate-400 bg-slate-200" : "bg-white",
+          )}
           style={{ width: 300 }}
           animate={
             isLargeScreen
@@ -511,7 +522,12 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="sticky bottom-0 flex flex-col items-center gap-8 bg-white">
+                <div
+                  className={cn(
+                    "sticky bottom-0 flex flex-col items-center gap-8 transition-colors duration-300",
+                    isTemporaryActive ? "bg-slate-300" : "bg-white",
+                  )}
+                >
                   {!chatStarted && (
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
@@ -526,10 +542,13 @@ export function Thread() {
                   <div
                     ref={dropRef}
                     className={cn(
-                      "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all",
+                      "relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all duration-300",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border border-solid",
+                      isTemporaryActive
+                        ? "border-slate-400 bg-slate-200"
+                        : "bg-muted",
                     )}
                   >
                     <form
@@ -559,7 +578,7 @@ export function Thread() {
                           }
                         }}
                         placeholder="Type your message..."
-                        className="resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
+                        className="resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 transition-colors duration-300 outline-none focus:ring-0 focus:outline-none"
                         autoFocus
                       />
 
