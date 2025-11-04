@@ -314,15 +314,12 @@ export function Thread() {
     <div
       className={cn(
         "relative flex h-screen w-full overflow-hidden transition-colors duration-300",
-        isTemporaryActive ? "bg-slate-300" : "bg-white",
+        isTemporaryActive && !chatStarted ? "bg-gray-200" : "bg-white",
       )}
     >
       <div className="relative hidden lg:flex">
         <motion.div
-          className={cn(
-            "absolute z-20 h-full overflow-hidden border-r transition-colors duration-300",
-            isTemporaryActive ? "border-slate-400 bg-slate-200" : "bg-white",
-          )}
+          className="absolute z-20 h-full overflow-hidden border-r bg-white"
           style={{ width: 300 }}
           animate={
             isLargeScreen
@@ -407,7 +404,14 @@ export function Thread() {
             </div>
           )}
           {chatStarted && (
-            <div className="relative z-10 flex items-center justify-between gap-3 p-2">
+            <div
+              className={cn(
+                "relative z-10 flex items-center justify-between gap-3 p-2",
+                isTemporaryActive && chatStarted
+                  ? "to-gray-0 bg-gradient-to-b from-gray-300 via-gray-200"
+                  : "bg-white",
+              )}
+            >
               <div className="relative flex items-center justify-start gap-2">
                 <div className="absolute left-0 z-10 ml-2 flex flex-col gap-2 pt-9">
                   {(!chatHistoryOpen || !isLargeScreen) && (
@@ -527,12 +531,7 @@ export function Thread() {
                 </>
               }
               footer={
-                <div
-                  className={cn(
-                    "sticky bottom-0 flex flex-col items-center gap-8 transition-colors duration-300",
-                    isTemporaryActive ? "bg-slate-300" : "bg-white",
-                  )}
-                >
+                <div className="sticky bottom-0 flex flex-col items-center gap-8 transition-colors duration-300">
                   {!chatStarted && (
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
@@ -547,13 +546,10 @@ export function Thread() {
                   <div
                     ref={dropRef}
                     className={cn(
-                      "relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all duration-300",
+                      "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all duration-300",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border border-solid",
-                      isTemporaryActive
-                        ? "border-slate-400 bg-slate-200"
-                        : "bg-muted",
                     )}
                   >
                     <form
