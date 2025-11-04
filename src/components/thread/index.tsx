@@ -260,6 +260,11 @@ export function Thread() {
       metadata.temporary = "true";
     }
 
+    if (!threadId && input.trim().length > 0) {
+      const title = input.trim().slice(0, 50);
+      metadata.title = title;
+    }
+
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {

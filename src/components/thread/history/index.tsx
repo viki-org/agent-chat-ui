@@ -171,16 +171,27 @@ function ThreadList({
     <div className="flex h-full w-full flex-col items-start justify-start gap-2 overflow-y-scroll [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
       {threads.map((t) => {
         let itemText = t.thread_id;
+
+        // First, try to use title from metadata
         if (
+          t.metadata &&
+          typeof t.metadata === "object" &&
+          "title" in t.metadata &&
+          typeof t.metadata.title === "string"
+        ) {
+          itemText = t.metadata.title;
+        } else if (
           typeof t.values === "object" &&
           t.values &&
           "messages" in t.values &&
           Array.isArray(t.values.messages) &&
           t.values.messages?.length > 0
         ) {
+          // Fallback to first message content if no title metadata
           const firstMessage = t.values.messages[0];
           itemText = getContentString(firstMessage.content);
         }
+
         const isPopupOpen = openPopupId === t.thread_id;
         const isAnotherPopupOpen = openPopupId !== null && !isPopupOpen;
         const isDeleting = deletingThreadIds.has(t.thread_id);
@@ -262,8 +273,14 @@ export default function ThreadHistory({
     parseAsBoolean.withDefault(false),
   );
 
-  const { getThreads, threads, setThreads, threadsLoading, setThreadsLoading, setIsTemporaryMode } =
-    useThreads();
+  const {
+    getThreads,
+    threads,
+    setThreads,
+    threadsLoading,
+    setThreadsLoading,
+    setIsTemporaryMode,
+  } = useThreads();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
