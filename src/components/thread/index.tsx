@@ -184,10 +184,27 @@ export function Thread() {
     Map<string, Message>
   >(new Map());
 
+  // Track the message count when streaming starts to identify messages from current turn
+  const [streamingStartMessageCount, setStreamingStartMessageCount] = useState<
+    number | null
+  >(null);
+
   // Track which intermediate message sections are expanded
   const [expandedIntermediates, setExpandedIntermediates] = useState<
     Set<string>
   >(new Set());
+
+  // Track when streaming starts/stops
+  useEffect(() => {
+    if (stream.isLoading && streamingStartMessageCount === null) {
+      // Streaming just started - record the current message count
+      // Messages before this point are from previous turns and should remain visible
+      setStreamingStartMessageCount(stream.messages.length);
+    } else if (!stream.isLoading && streamingStartMessageCount !== null) {
+      // Streaming finished - reset the counter
+      setStreamingStartMessageCount(null);
+    }
+  }, [stream.isLoading, streamingStartMessageCount, stream.messages.length]);
 
   // Capture and accumulate all messages during streaming
   useEffect(() => {
@@ -230,12 +247,16 @@ export function Thread() {
         }
       });
 
-      // During active streaming, treat ALL AI/tool messages as intermediate
-      // They will only show in the collapsible section while streaming
-      // After streaming completes, the final message will show in main flow
-      if (stream.isLoading) {
-        stream.messages.forEach((msg) => {
-          if (msg.id && (msg.type === "ai" || msg.type === "tool")) {
+      // During active streaming, treat only NEW AI/tool messages (from current turn) as intermediate
+      // Messages that existed before streaming started should remain visible as final messages
+      if (stream.isLoading && streamingStartMessageCount !== null) {
+        stream.messages.forEach((msg, index) => {
+          // Only treat messages added after streaming started as intermediate
+          if (
+            msg.id &&
+            (msg.type === "ai" || msg.type === "tool") &&
+            index >= streamingStartMessageCount
+          ) {
             intermediateIds.add(msg.id);
             // Only add to intermediate messages if not already there
             if (!intermediateMessages.find((m) => m.id === msg.id)) {
@@ -270,7 +291,12 @@ export function Thread() {
         .filter(Boolean),
       intermediateGroups: intermediates,
     };
-  }, [stream.messages, streamedMessages, stream.isLoading]);
+  }, [
+    stream.messages,
+    streamedMessages,
+    stream.isLoading,
+    streamingStartMessageCount,
+  ]);
 
   const isLoading = stream.isLoading;
 
@@ -286,6 +312,7 @@ export function Thread() {
     // Clear accumulated streamed messages when switching threads
     setStreamedMessages(new Map());
     setExpandedIntermediates(new Set());
+    setStreamingStartMessageCount(null);
   };
 
   useEffect(() => {
