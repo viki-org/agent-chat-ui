@@ -183,59 +183,34 @@ export function Thread() {
   const [streamedMessages, setStreamedMessages] = useState<
     Map<string, Message>
   >(new Map());
-  const isStreamingRef = useRef(false);
 
   // Track which intermediate message sections are expanded
   const [expandedIntermediates, setExpandedIntermediates] = useState<
     Set<string>
   >(new Set());
 
-  // Track streaming state changes
-  useEffect(() => {
-    if (stream.isLoading && !isStreamingRef.current) {
-      // Just started streaming - clear previous streamed messages for this run
-      isStreamingRef.current = true;
-    } else if (!stream.isLoading && isStreamingRef.current) {
-      // Just finished streaming
-      isStreamingRef.current = false;
-    }
-  }, [stream.isLoading]);
-
   // Capture and accumulate all messages during streaming
   useEffect(() => {
     if (!stream.isLoading) {
-      // Not streaming, use messages as-is
       return;
     }
 
     // During streaming, capture all AI and tool messages
     stream.messages.forEach((msg) => {
       if (msg.id && (msg.type === "ai" || msg.type === "tool")) {
-        setStreamedMessages((prev) => {
-          const updated = new Map(prev);
-          updated.set(msg.id!, msg);
-          return updated;
-        });
+        setStreamedMessages((prev) => new Map(prev).set(msg.id!, msg));
       }
     });
   }, [stream.messages, stream.isLoading]);
 
   // Merge streamed messages with current messages and identify intermediate vs final messages
   const { messages, intermediateGroups } = useMemo(() => {
-    if (!stream.isLoading && streamedMessages.size === 0) {
-      // No streaming happening and no accumulated messages, use current state
-      return {
-        messages: stream.messages,
-        intermediateGroups: new Map<string, Message[]>(),
-      };
-    }
-
-    // Build combined message list
     const messageMap = new Map<string, Message>();
     const messageOrder: string[] = [];
     const intermediates = new Map<string, Message[]>();
+    const intermediateIds = new Set<string>();
 
-    // First, add all current messages from stream
+    // Add all current messages from stream
     stream.messages.forEach((msg) => {
       if (msg.id) {
         messageMap.set(msg.id, msg);
@@ -243,31 +218,56 @@ export function Thread() {
       }
     });
 
-    // Then add any streamed messages that aren't in the current state
-    // (these are the intermediate messages that would otherwise disappear)
-    // Find where to insert preserved messages (after the last human message)
-    const lastHumanIndex = messageOrder.findLastIndex((msgId) => {
-      const m = messageMap.get(msgId);
-      return m?.type === "human";
-    });
+    // If we're streaming or have accumulated streamed messages, identify intermediates
+    if (stream.isLoading || streamedMessages.size > 0) {
+      const intermediateMessages: Message[] = [];
 
-    const intermediateMessages: Message[] = [];
-    streamedMessages.forEach((msg, id) => {
-      if (!messageMap.has(id)) {
-        intermediateMessages.push(msg);
+      // Add messages from streamedMessages that are no longer in current stream
+      streamedMessages.forEach((msg, id) => {
+        if (!messageMap.has(id)) {
+          intermediateMessages.push(msg);
+          intermediateIds.add(id);
+        }
+      });
+
+      // During active streaming, treat ALL AI/tool messages as intermediate
+      // They will only show in the collapsible section while streaming
+      // After streaming completes, the final message will show in main flow
+      if (stream.isLoading) {
+        stream.messages.forEach((msg) => {
+          if (msg.id && (msg.type === "ai" || msg.type === "tool")) {
+            intermediateIds.add(msg.id);
+            // Only add to intermediate messages if not already there
+            if (!intermediateMessages.find((m) => m.id === msg.id)) {
+              intermediateMessages.push(msg);
+            }
+          }
+        });
       }
-    });
 
-    // Group intermediate messages by the human message they follow
-    if (intermediateMessages.length > 0 && lastHumanIndex >= 0) {
-      const humanMsgId = messageOrder[lastHumanIndex];
-      if (humanMsgId) {
-        intermediates.set(humanMsgId, intermediateMessages);
+      // Group intermediate messages by the last human message
+      if (intermediateMessages.length > 0) {
+        const lastHumanIndex = messageOrder.findLastIndex((msgId) => {
+          const m = messageMap.get(msgId);
+          return m?.type === "human";
+        });
+
+        if (lastHumanIndex >= 0) {
+          const humanMsgId = messageOrder[lastHumanIndex];
+          intermediates.set(humanMsgId, intermediateMessages);
+        }
       }
     }
 
+    // Filter out intermediate messages from the main message flow
+    const finalMessageOrder = messageOrder.filter(
+      (id) => !intermediateIds.has(id),
+    );
+
     return {
-      messages: messageOrder.map((id) => messageMap.get(id)!).filter(Boolean),
+      messages: finalMessageOrder
+        .map((id) => messageMap.get(id)!)
+        .filter(Boolean),
       intermediateGroups: intermediates,
     };
   }, [stream.messages, streamedMessages, stream.isLoading]);
