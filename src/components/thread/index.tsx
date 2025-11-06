@@ -637,9 +637,16 @@ export function Thread() {
                                   ) : (
                                     <ChevronRight className="h-4 w-4" />
                                   )}
-                                  <span className="font-medium">
-                                    {isExpanded ? "Hide" : "Show"} processing
-                                    steps ({intermediates.length})
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      isLoading &&
+                                        !isExpanded &&
+                                        "animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-500 via-blue-500 to-gray-500 bg-[length:200%_100%] bg-clip-text text-transparent",
+                                    )}
+                                  >
+                                    {isExpanded ? "Hide" : "Show"} thinking process
+                                    ({intermediates.length} steps)
                                   </span>
                                 </button>
 
