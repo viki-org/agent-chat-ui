@@ -1,9 +1,15 @@
 import { v4 as uuidv4 } from "uuid";
-import { ReactNode, useEffect, useRef } from "react";
+import React, {
+  ReactNode,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  FormEvent,
+} from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
-import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
@@ -22,6 +28,8 @@ import {
   SquarePen,
   XIcon,
   Plus,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -168,7 +176,102 @@ export function Thread() {
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
 
   const stream = useStreamContext();
-  const messages = stream.messages;
+
+  // Accumulate all AI/tool messages seen during streaming to prevent them from disappearing
+  // The LangGraph SDK replaces messages in state as the agent moves through nodes,
+  // but we want to show ALL intermediate messages from start to finish
+  const [streamedMessages, setStreamedMessages] = useState<
+    Map<string, Message>
+  >(new Map());
+  const isStreamingRef = useRef(false);
+
+  // Track which intermediate message sections are expanded
+  const [expandedIntermediates, setExpandedIntermediates] = useState<
+    Set<string>
+  >(new Set());
+
+  // Track streaming state changes
+  useEffect(() => {
+    if (stream.isLoading && !isStreamingRef.current) {
+      // Just started streaming - clear previous streamed messages for this run
+      isStreamingRef.current = true;
+    } else if (!stream.isLoading && isStreamingRef.current) {
+      // Just finished streaming
+      isStreamingRef.current = false;
+    }
+  }, [stream.isLoading]);
+
+  // Capture and accumulate all messages during streaming
+  useEffect(() => {
+    if (!stream.isLoading) {
+      // Not streaming, use messages as-is
+      return;
+    }
+
+    // During streaming, capture all AI and tool messages
+    stream.messages.forEach((msg) => {
+      if (msg.id && (msg.type === "ai" || msg.type === "tool")) {
+        setStreamedMessages((prev) => {
+          const updated = new Map(prev);
+          updated.set(msg.id!, msg);
+          return updated;
+        });
+      }
+    });
+  }, [stream.messages, stream.isLoading]);
+
+  // Merge streamed messages with current messages and identify intermediate vs final messages
+  const { messages, intermediateGroups } = useMemo(() => {
+    if (!stream.isLoading && streamedMessages.size === 0) {
+      // No streaming happening and no accumulated messages, use current state
+      return {
+        messages: stream.messages,
+        intermediateGroups: new Map<string, Message[]>(),
+      };
+    }
+
+    // Build combined message list
+    const messageMap = new Map<string, Message>();
+    const messageOrder: string[] = [];
+    const intermediates = new Map<string, Message[]>();
+
+    // First, add all current messages from stream
+    stream.messages.forEach((msg) => {
+      if (msg.id) {
+        messageMap.set(msg.id, msg);
+        messageOrder.push(msg.id);
+      }
+    });
+
+    // Then add any streamed messages that aren't in the current state
+    // (these are the intermediate messages that would otherwise disappear)
+    // Find where to insert preserved messages (after the last human message)
+    const lastHumanIndex = messageOrder.findLastIndex((msgId) => {
+      const m = messageMap.get(msgId);
+      return m?.type === "human";
+    });
+
+    const intermediateMessages: Message[] = [];
+    streamedMessages.forEach((msg, id) => {
+      if (!messageMap.has(id)) {
+        intermediateMessages.push(msg);
+      }
+    });
+
+    // Group intermediate messages by the human message they follow
+    if (intermediateMessages.length > 0 && lastHumanIndex >= 0) {
+      const humanMsgId = messageOrder[lastHumanIndex];
+      if (humanMsgId) {
+        intermediates.set(humanMsgId, intermediateMessages);
+      }
+    }
+
+    return {
+      messages: messageOrder.map((id) => messageMap.get(id)!).filter(Boolean),
+      intermediateGroups: intermediates,
+    };
+  }, [stream.messages, streamedMessages, stream.isLoading]);
+
   const isLoading = stream.isLoading;
 
   const lastError = useRef<string | undefined>(undefined);
@@ -179,6 +282,10 @@ export function Thread() {
     // close artifact and reset artifact context
     closeArtifact();
     setArtifactContext({});
+
+    // Clear accumulated streamed messages when switching threads
+    setStreamedMessages(new Map());
+    setExpandedIntermediates(new Set());
   };
 
   useEffect(() => {
@@ -219,6 +326,9 @@ export function Thread() {
     e.preventDefault();
     if ((input.trim().length === 0 && contentBlocks.length === 0) || isLoading)
       return;
+
+    // Clear accumulated streamed messages from previous run
+    setStreamedMessages(new Map());
 
     const newHumanMessage: Message = {
       id: uuidv4(),
@@ -480,22 +590,93 @@ export function Thread() {
                 <>
                   {messages
                     .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .map((message, index) =>
-                      message.type === "human" ? (
-                        <HumanMessage
-                          key={message.id || `${message.type}-${index}`}
-                          message={message}
-                          isLoading={isLoading}
-                        />
-                      ) : (
-                        <AssistantMessage
-                          key={message.id || `${message.type}-${index}`}
-                          message={message}
-                          isLoading={isLoading}
-                          handleRegenerate={handleRegenerate}
-                        />
-                      ),
-                    )}
+                    .map((message, index) => {
+                      if (message.type === "human") {
+                        // Render human message
+                        const humanMsg = (
+                          <HumanMessage
+                            key={message.id || `${message.type}-${index}`}
+                            message={message}
+                            isLoading={isLoading}
+                          />
+                        );
+
+                        // Check if there are intermediate messages for this human message
+                        const intermediates = message.id
+                          ? intermediateGroups.get(message.id)
+                          : undefined;
+
+                        if (intermediates && intermediates.length > 0) {
+                          const groupKey = message.id || `group-${index}`;
+                          const isExpanded =
+                            expandedIntermediates.has(groupKey);
+
+                          return (
+                            <React.Fragment
+                              key={message.id || `${message.type}-${index}`}
+                            >
+                              {humanMsg}
+                              {/* Collapsible intermediate messages section */}
+                              <div className="ml-4 border-l-2 border-gray-200 pl-4">
+                                <button
+                                  onClick={() => {
+                                    setExpandedIntermediates((prev) => {
+                                      const next = new Set(prev);
+                                      if (isExpanded) {
+                                        next.delete(groupKey);
+                                      } else {
+                                        next.add(groupKey);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="mb-2 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                  <span className="font-medium">
+                                    {isExpanded ? "Hide" : "Show"} processing
+                                    steps ({intermediates.length})
+                                  </span>
+                                </button>
+
+                                {isExpanded && (
+                                  <div className="flex flex-col gap-2 text-sm">
+                                    {intermediates.map((intMsg, intIndex) => (
+                                      <div
+                                        key={intMsg.id || `int-${intIndex}`}
+                                        className="opacity-70"
+                                      >
+                                        <AssistantMessage
+                                          message={intMsg}
+                                          isLoading={false}
+                                          handleRegenerate={handleRegenerate}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </React.Fragment>
+                          );
+                        }
+
+                        return humanMsg;
+                      } else {
+                        // Render AI/tool message (final message, not intermediate)
+                        return (
+                          <AssistantMessage
+                            key={message.id || `${message.type}-${index}`}
+                            message={message}
+                            isLoading={isLoading}
+                            handleRegenerate={handleRegenerate}
+                          />
+                        );
+                      }
+                    })}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
                     We need to render it outside of the messages list, since there are no messages to render */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (
