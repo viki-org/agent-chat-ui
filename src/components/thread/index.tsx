@@ -184,6 +184,10 @@ export function Thread() {
     Map<string, Message>
   >(new Map());
 
+  // Persist intermediate message groups across streaming sessions
+  const [persistedIntermediateGroups, setPersistedIntermediateGroups] =
+    useState<Map<string, Message[]>>(new Map());
+
   // Track the message count when streaming starts to identify messages from current turn
   const [streamingStartMessageCount, setStreamingStartMessageCount] = useState<
     number | null
@@ -206,6 +210,40 @@ export function Thread() {
     }
   }, [stream.isLoading, streamingStartMessageCount, stream.messages.length]);
 
+  // Persist intermediate groups when streaming completes
+  useEffect(() => {
+    if (!stream.isLoading && streamedMessages.size > 0) {
+      // Streaming just finished - persist the intermediate groups
+      const lastHumanIndex = stream.messages.findLastIndex(
+        (msg) => msg.type === "human",
+      );
+
+      if (lastHumanIndex >= 0) {
+        const humanMsg = stream.messages[lastHumanIndex];
+        if (humanMsg.id) {
+          // Collect intermediate messages from this streaming session
+          // Exclude the final message (which is still in stream.messages)
+          const currentMessageIds = new Set(stream.messages.map((m) => m.id));
+          const intermediates = Array.from(streamedMessages.values()).filter(
+            (msg) => !currentMessageIds.has(msg.id),
+          );
+
+          if (intermediates.length > 0) {
+            const humanMsgId = humanMsg.id;
+            setPersistedIntermediateGroups((prev) => {
+              const updated = new Map(prev);
+              updated.set(humanMsgId, intermediates);
+              return updated;
+            });
+          }
+        }
+      }
+
+      // Clear streamed messages after persisting
+      setStreamedMessages(new Map());
+    }
+  }, [stream.isLoading, streamedMessages, stream.messages]);
+
   // Capture and accumulate all messages during streaming
   useEffect(() => {
     if (!stream.isLoading) {
@@ -224,7 +262,9 @@ export function Thread() {
   const { messages, intermediateGroups } = useMemo(() => {
     const messageMap = new Map<string, Message>();
     const messageOrder: string[] = [];
-    const intermediates = new Map<string, Message[]>();
+    const intermediates = new Map<string, Message[]>(
+      persistedIntermediateGroups,
+    );
     const intermediateIds = new Set<string>();
 
     // Add all current messages from stream
@@ -233,6 +273,15 @@ export function Thread() {
         messageMap.set(msg.id, msg);
         messageOrder.push(msg.id);
       }
+    });
+
+    // Mark existing persisted intermediate messages as intermediate
+    persistedIntermediateGroups.forEach((msgs) => {
+      msgs.forEach((msg) => {
+        if (msg.id) {
+          intermediateIds.add(msg.id);
+        }
+      });
     });
 
     // If we're streaming or have accumulated streamed messages, identify intermediates
@@ -296,6 +345,7 @@ export function Thread() {
     streamedMessages,
     stream.isLoading,
     streamingStartMessageCount,
+    persistedIntermediateGroups,
   ]);
 
   const isLoading = stream.isLoading;
@@ -311,6 +361,7 @@ export function Thread() {
 
     // Clear accumulated streamed messages when switching threads
     setStreamedMessages(new Map());
+    setPersistedIntermediateGroups(new Map());
     setExpandedIntermediates(new Set());
     setStreamingStartMessageCount(null);
   };
