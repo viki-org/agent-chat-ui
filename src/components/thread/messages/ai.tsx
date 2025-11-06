@@ -1,7 +1,7 @@
 import { parsePartialJson } from "@langchain/core/output_parsers";
 import { useStreamContext } from "@/providers/Stream";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
-import { getContentString } from "../utils";
+import { getContentString, extractThinkingFromMessage } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
@@ -97,10 +97,12 @@ export function AssistantMessage({
   message,
   isLoading,
   handleRegenerate,
+  isIntermediate = false,
 }: {
   message: Message | undefined;
   isLoading: boolean;
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
+  isIntermediate?: boolean;
 }) {
   const content = message?.content ?? [];
   const contentString = getContentString(content);
@@ -138,6 +140,35 @@ export function AssistantMessage({
 
   if (isToolResult && hideToolCalls) {
     return null;
+  }
+
+  // If this is an intermediate message, extract and display thinking/recommendation field or full content
+  if (isIntermediate && message) {
+    const summaryText = extractThinkingFromMessage(message);
+
+    // Display summary if thinking or recommendation found
+    if (summaryText) {
+      return (
+        <div className="mr-auto flex items-start gap-2">
+          <div className="flex flex-col gap-2">
+            <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              {summaryText}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback: display the full content with markdown support
+    return (
+      <div className="mr-auto flex items-start gap-2">
+        <div className="flex flex-col gap-2">
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <MarkdownText>{contentString}</MarkdownText>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
