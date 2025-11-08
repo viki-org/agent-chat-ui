@@ -159,11 +159,17 @@ export function AssistantMessage({
       );
     }
 
+    // Check if content starts with SQL code block
+    const isSqlQuery = contentString.trim().startsWith("```sql");
+
     // Fallback: display the full content with markdown support
     return (
       <div className="mr-auto flex items-start gap-2">
         <div className="flex flex-col gap-2">
           <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            {isSqlQuery && (
+              <div className="mb-2 font-medium">Generated SQL query:</div>
+            )}
             <MarkdownText>{contentString}</MarkdownText>
           </div>
         </div>
