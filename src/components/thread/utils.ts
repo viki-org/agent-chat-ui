@@ -24,27 +24,52 @@ export function getContentString(content: Message["content"]): string {
  *
  * Priority: thinking > recommendation
  */
-export function extractThinkingFromMessage(message: any): string | null {
-  if (!message) return null;
+export function extractThinkingFromMessage(message: any): {
+  thinking: string | null;
+  recommendation: string | null;
+  improved_sql_query: string | null;
+} {
+  if (!message)
+    return { thinking: null, recommendation: null, improved_sql_query: null };
 
-  // Check tool_calls array for thinking/recommendation in args
+  let thinking: string | null = null;
+  let recommendation: string | null = null;
+  let improved_sql_query: string | null = null;
+
+  // Check tool_calls array for fields
   if (message.tool_calls && Array.isArray(message.tool_calls)) {
     for (const toolCall of message.tool_calls) {
-      if (toolCall.args?.thinking) {
-        return toolCall.args.thinking;
+      if (toolCall.args?.thinking && !thinking) {
+        thinking = toolCall.args.thinking;
       }
-      if (toolCall.args?.recommendation) {
-        return toolCall.args.recommendation;
+      if (toolCall.args?.recommendation && !recommendation) {
+        recommendation = toolCall.args.recommendation;
+      }
+      if (
+        typeof toolCall.args?.improved_sql_query === "string" &&
+        toolCall.args.improved_sql_query.trim() !== "" &&
+        !improved_sql_query
+      ) {
+        improved_sql_query = toolCall.args.improved_sql_query;
       }
     }
   }
 
-  // Check additional_kwargs for thinking/recommendation
-  if (message.additional_kwargs?.thinking) {
-    return message.additional_kwargs.thinking;
-  }
-  if (message.additional_kwargs?.recommendation) {
-    return message.additional_kwargs.recommendation;
+  // Check additional_kwargs for fields
+  if (message.additional_kwargs) {
+    if (message.additional_kwargs.thinking && !thinking) {
+      thinking = message.additional_kwargs.thinking;
+    }
+    if (message.additional_kwargs.recommendation && !recommendation) {
+      recommendation = message.additional_kwargs.recommendation;
+    }
+    if (
+      typeof message.additional_kwargs.improved_sql_query === "string" &&
+      message.additional_kwargs.improved_sql_query.trim() !== "" &&
+      !improved_sql_query
+    ) {
+      improved_sql_query = message.additional_kwargs.improved_sql_query;
+    }
   }
 
   // Check additional_kwargs.tool_calls (different structure)
@@ -56,14 +81,21 @@ export function extractThinkingFromMessage(message: any): string | null {
       if (toolCall.function?.arguments) {
         try {
           const args = JSON.parse(toolCall.function.arguments);
-          if (args.thinking) {
-            return args.thinking;
+          if (args.thinking && !thinking) {
+            thinking = args.thinking;
           }
-          if (args.recommendation) {
-            return args.recommendation;
+          if (args.recommendation && !recommendation) {
+            recommendation = args.recommendation;
+          }
+          if (
+            typeof args.improved_sql_query === "string" &&
+            args.improved_sql_query.trim() !== "" &&
+            !improved_sql_query
+          ) {
+            improved_sql_query = args.improved_sql_query;
           }
         } catch {
-          // Not valid JSON or no thinking/recommendation field
+          // Not valid JSON or no field
         }
       }
     }
@@ -73,18 +105,25 @@ export function extractThinkingFromMessage(message: any): string | null {
   if (typeof message.content === "string") {
     try {
       const parsed = JSON.parse(message.content);
-      if (parsed.thinking) {
-        return parsed.thinking;
+      if (parsed.thinking && !thinking) {
+        thinking = parsed.thinking;
       }
-      if (parsed.recommendation) {
-        return parsed.recommendation;
+      if (parsed.recommendation && !recommendation) {
+        recommendation = parsed.recommendation;
+      }
+      if (
+        typeof parsed.improved_sql_query === "string" &&
+        parsed.improved_sql_query.trim() !== "" &&
+        !improved_sql_query
+      ) {
+        improved_sql_query = parsed.improved_sql_query;
       }
     } catch {
       // Not JSON, ignore
     }
   }
 
-  return null;
+  return { thinking, recommendation, improved_sql_query };
 }
 
 /**

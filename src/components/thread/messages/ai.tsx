@@ -144,16 +144,26 @@ export function AssistantMessage({
 
   // If this is an intermediate message, extract and display thinking/recommendation field or full content
   if (isIntermediate && message) {
-    const summaryText = extractThinkingFromMessage(message);
+    const extracted = extractThinkingFromMessage(message);
+    const summaryText = extracted.thinking || extracted.recommendation;
+    const improvedSqlQuery = extracted.improved_sql_query;
 
-    // Display summary if thinking or recommendation found
-    if (summaryText) {
+    // Display summary if thinking/recommendation or improved_sql_query found
+    if (summaryText || improvedSqlQuery) {
       return (
         <div className="mr-auto flex items-start gap-2">
           <div className="flex flex-col gap-2">
-            <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-              {summaryText}
-            </div>
+            {summaryText && (
+              <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                {summaryText}
+              </div>
+            )}
+            {improvedSqlQuery && (
+              <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <div className="mb-2 font-medium">Improved SQL query:</div>
+                <MarkdownText>{`\`\`\`sql\n${improvedSqlQuery}\n\`\`\``}</MarkdownText>
+              </div>
+            )}
           </div>
         </div>
       );
