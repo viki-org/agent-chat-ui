@@ -117,6 +117,56 @@ function ProfileAvatar({ gcpIapEmail }: { gcpIapEmail: string | null }) {
   );
 }
 
+function extractNameFromEmail(email: string | null): string | null {
+  if (!email) return null;
+  const namePart = email.split("@")[0];
+  if (!namePart) return null;
+  const firstName = namePart.split(".")[0];
+  return firstName.toUpperCase();
+}
+
+function PersonalizedGreeting({ name }: { name: string | null }) {
+  if (!name) return null;
+  return (
+    <div className="mb-4 rounded-lg p-4 text-center text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 bg-clip-text text-transparent">
+      Hello, {name}
+    </div>
+  );
+}
+
+const sampleMessages = [
+  "List all redis that are used by apiproxy",
+  "List all maxmind databases used by apiproxy",
+  "List all database hosts used in content-platform team",
+  "Show me all configurations in monetization-middleware service",
+  "List some unused resources in GCP for cost optimization",
+  "Query GCP assets and list all GKE clusters that apiproxy are deployed in. And what are their version?",
+  "List all affected resources by the email in this pdf/image <Upload PDF or Image>",
+];
+
+function SampleMessages({
+  onSelectMessage,
+}: {
+  onSelectMessage: (message: string) => void;
+}) {
+  return (
+    <div className="rounded-lg p-4">
+      <h2 className="mb-2 font-semibold text-gray-800">Sample messages:</h2>
+      <ul className="list-inside list-decimal text-gray-700">
+        {sampleMessages.map((msg, i) => (
+          <li
+            key={i}
+            className="cursor-pointer hover:underline"
+            onClick={() => onSelectMessage(msg)}
+          >
+            {msg}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function TemporaryChatToggle({
   isTemporary,
   onToggle,
@@ -479,6 +529,11 @@ export function Thread() {
   const isTemporaryActive =
     isTemporaryMode || isCurrentThreadTemporary(threadId);
 
+  const userName = useMemo(
+    () => extractNameFromEmail(gcpIapEmail),
+    [gcpIapEmail],
+  );
+
   return (
     <div
       className={cn(
@@ -660,7 +715,7 @@ export function Thread() {
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
-                !chatStarted && "mt-[25vh] flex flex-col items-stretch",
+                !chatStarted && "flex flex-col items-stretch justify-center",
                 chatStarted && "grid grid-rows-[1fr_auto]",
               )}
               contentClassName="pt-8 pb-16  max-w-3xl mx-auto flex flex-col gap-4 w-full"
@@ -777,13 +832,21 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="sticky bottom-0 flex flex-col items-center gap-8 transition-colors duration-300">
+                <div
+                  className={cn(
+                    "flex w-full flex-col items-center gap-8 transition-colors duration-300",
+                    chatStarted && "sticky bottom-0",
+                  )}
+                >
                   {!chatStarted && (
-                    <div className="flex items-center gap-3">
-                      <LangGraphLogoSVG className="h-8 flex-shrink-0" />
-                      <h1 className="text-2xl font-semibold tracking-tight">
-                        OpsGPT
-                      </h1>
+                    <div className="flex flex-col items-center gap-3">
+                      <PersonalizedGreeting name={userName} />
+                      <div className="flex items-center gap-3">
+                        <LangGraphLogoSVG className="h-8 flex-shrink-0" />
+                        <h1 className="text-2xl font-semibold tracking-tight">
+                          OpsGPT
+                        </h1>
+                      </div>
                     </div>
                   )}
 
@@ -886,6 +949,9 @@ export function Thread() {
                       </div>
                     </form>
                   </div>
+                  {!chatStarted && (
+                    <SampleMessages onSelectMessage={setInput} />
+                  )}
                 </div>
               }
             />
