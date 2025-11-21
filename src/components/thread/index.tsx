@@ -209,7 +209,7 @@ export function Thread() {
   );
   const [hideToolCalls, setHideToolCalls] = useQueryState(
     "hideToolCalls",
-    parseAsBoolean.withDefault(false),
+    parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -311,90 +311,145 @@ export function Thread() {
   // Merge streamed messages with current messages and identify intermediate vs final messages
   const { messages, intermediateGroups } = useMemo(() => {
     const messageMap = new Map<string, Message>();
-    const messageOrder: string[] = [];
-    const intermediates = new Map<string, Message[]>(
+    const intermediateGroupsMap = new Map<string, Message[]>(
       persistedIntermediateGroups,
     );
-    const intermediateIds = new Set<string>();
 
-    // Add all current messages from stream
-    stream.messages.forEach((msg) => {
-      if (msg.id) {
-        messageMap.set(msg.id, msg);
-        messageOrder.push(msg.id);
-      }
-    });
+    // 1. Build a complete list of messages from stream.messages
+    // We'll use this as the base for historical turns
+    const baseMessages = [...stream.messages];
 
-    // Mark existing persisted intermediate messages as intermediate
-    persistedIntermediateGroups.forEach((msgs) => {
-      msgs.forEach((msg) => {
-        if (msg.id) {
-          intermediateIds.add(msg.id);
-        }
-      });
-    });
+    // 2. Identify the current turn (the sequence after the last Human message)
+    const lastHumanIndex = baseMessages.findLastIndex(
+      (m) => m.type === "human",
+    );
 
-    // If we're streaming or have accumulated streamed messages, identify intermediates
-    if (stream.isLoading || streamedMessages.size > 0) {
-      const intermediateMessages: Message[] = [];
+    // 3. If we are streaming or have streamed messages, we need to reconstruct the current turn
+    // using the high-fidelity streamedMessages (which includes intermediate steps that might be gone from stream.messages)
+    if (
+      lastHumanIndex !== -1 &&
+      (stream.isLoading || streamedMessages.size > 0)
+    ) {
+      const lastHumanMsg = baseMessages[lastHumanIndex];
+      if (lastHumanMsg.id) {
+        // Get all messages that belong to this turn from streamedMessages
+        // We assume streamedMessages contains ALL messages for the current turn in order
+        const currentTurnIntermediates: Message[] = [];
+        const currentTurnIds = new Set<string>();
 
-      // Add messages from streamedMessages that are no longer in current stream
-      streamedMessages.forEach((msg, id) => {
-        if (!messageMap.has(id)) {
-          intermediateMessages.push(msg);
-          intermediateIds.add(id);
-        }
-      });
+        // Convert streamedMessages to array (maintaining insertion order)
+        const streamedMsgsArray = Array.from(streamedMessages.values());
 
-      // During active streaming, treat only NEW AI/tool messages (from current turn) as intermediate
-      // Messages that existed before streaming started should remain visible as final messages
-      if (stream.isLoading && streamingStartMessageCount !== null) {
-        stream.messages.forEach((msg, index) => {
-          // Only treat messages added after streaming started as intermediate
-          if (
-            msg.id &&
-            (msg.type === "ai" || msg.type === "tool") &&
-            index >= streamingStartMessageCount
-          ) {
-            intermediateIds.add(msg.id);
-            // Only add to intermediate messages if not already there
-            if (!intermediateMessages.find((m) => m.id === msg.id)) {
-              intermediateMessages.push(msg);
-            }
-          }
-        });
-      }
+        // If we have streamed messages, they are the source of truth for the current turn's AI/Tool messages
+        if (streamedMsgsArray.length > 0) {
+           // The last message in the stream is the "final" one (so far)
+           // All others are intermediate
+           const allCurrentTurnMsgs = [...streamedMsgsArray];
 
-      // Group intermediate messages by the last human message
-      if (intermediateMessages.length > 0) {
-        const lastHumanIndex = messageOrder.findLastIndex((msgId) => {
-          const m = messageMap.get(msgId);
-          return m?.type === "human";
-        });
+           // If the stream is done, we might want to ensure we didn't miss anything from baseMessages
+           // but usually streamedMessages is more complete for the active turn.
 
-        if (lastHumanIndex >= 0) {
-          const humanMsgId = messageOrder[lastHumanIndex];
-          intermediates.set(humanMsgId, intermediateMessages);
+           // Logic:
+           // All messages in this turn EXCEPT the very last one are intermediate.
+           // The last one is "final" (displayed in main thread).
+
+           const finalMsg = allCurrentTurnMsgs[allCurrentTurnMsgs.length - 1];
+           const intermediates = allCurrentTurnMsgs.slice(0, -1);
+
+           intermediateGroupsMap.set(lastHumanMsg.id, intermediates);
+
+           // We need to make sure the main `messages` list reflects this.
+           // It should contain: ...previous_turns, lastHumanMsg, finalMsg
+           // But wait, `baseMessages` might contain stale versions or missing steps.
+           // We should replace the tail of `baseMessages` (after lastHuman) with `[finalMsg]`.
+
+           // However, we must be careful not to duplicate if finalMsg is already there.
+           // And we must ensure we don't lose the human message.
         }
       }
     }
 
-    // Filter out intermediate messages from the main message flow
-    const finalMessageOrder = messageOrder.filter(
-      (id) => !intermediateIds.has(id),
-    );
+    // Refined Logic:
+    // Iterate through turns in `baseMessages`.
+    // For past turns:
+    //    Collect H -> [A, T, A...]
+    //    Last A/T is final. Others are intermediate.
+    //    (Note: `persistedIntermediateGroups` might already have some, we should merge or re-calculate if possible.
+    //     But `persistedIntermediateGroups` is needed because `stream.messages` might have LOST the intermediates for past turns.
+    //     So for past turns, we trust `persistedIntermediateGroups` + `stream.messages`.)
+
+    // For current turn:
+    //    Use `streamedMessages` if available as the source of truth for the sequence.
+
+    const finalMessages: Message[] = [];
+    let currentTurnHuman: Message | null = null;
+    let currentTurnAIs: Message[] = [];
+
+    // Helper to finalize a turn
+    const finalizeTurn = (human: Message, ais: Message[]) => {
+      finalMessages.push(human);
+
+      // If we have persisted intermediates for this human, add them to the pool
+      const persisted = intermediateGroupsMap.get(human.id!) || [];
+
+      // Merge persisted and current AIs, deduplicating by ID
+      const allAIsMap = new Map<string, Message>();
+      persisted.forEach(m => m.id && allAIsMap.set(m.id, m));
+      ais.forEach(m => m.id && allAIsMap.set(m.id, m));
+
+      const allAIs = Array.from(allAIsMap.values());
+
+      if (allAIs.length > 0) {
+        // Last one is final
+        const finalAI = allAIs[allAIs.length - 1];
+        const intermediates = allAIs.slice(0, -1);
+
+        intermediateGroupsMap.set(human.id!, intermediates);
+        finalMessages.push(finalAI);
+      }
+    };
+
+    for (const msg of baseMessages) {
+      if (msg.type === "human") {
+        // Close previous turn
+        if (currentTurnHuman) {
+          finalizeTurn(currentTurnHuman, currentTurnAIs);
+        }
+        // Start new turn
+        currentTurnHuman = msg;
+        currentTurnAIs = [];
+      } else if (msg.type === "ai" || msg.type === "tool") {
+        if (currentTurnHuman) {
+          currentTurnAIs.push(msg);
+        } else {
+          // Orphaned AI message at start? Just add to finalMessages
+          finalMessages.push(msg);
+        }
+      }
+    }
+
+    // Handle the last (current) turn
+    if (currentTurnHuman) {
+      // If this is the active turn (matches lastHumanIndex), use streamedMessages if available
+      const isActiveTurn = currentTurnHuman === baseMessages[lastHumanIndex];
+
+      if (isActiveTurn && streamedMessages.size > 0) {
+        // Use streamedMessages as the source for AIs in this turn
+        // streamedMessages contains ALL AI/Tool messages for the current stream
+        currentTurnAIs = Array.from(streamedMessages.values());
+      }
+
+      finalizeTurn(currentTurnHuman, currentTurnAIs);
+    }
 
     return {
-      messages: finalMessageOrder
-        .map((id) => messageMap.get(id)!)
-        .filter(Boolean),
-      intermediateGroups: intermediates,
+      messages: finalMessages,
+      intermediateGroups: intermediateGroupsMap,
     };
   }, [
     stream.messages,
     streamedMessages,
     stream.isLoading,
-    streamingStartMessageCount,
     persistedIntermediateGroups,
   ]);
 
@@ -751,37 +806,63 @@ export function Thread() {
                               {humanMsg}
                               {/* Collapsible intermediate messages section */}
                               <div className="ml-4 border-l-2 border-gray-200 pl-4">
-                                <button
-                                  onClick={() => {
-                                    setExpandedIntermediates((prev) => {
-                                      const next = new Set(prev);
-                                      if (isExpanded) {
-                                        next.delete(groupKey);
-                                      } else {
-                                        next.add(groupKey);
-                                      }
-                                      return next;
-                                    });
-                                  }}
-                                  className="mb-2 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                  <span
-                                    className={cn(
-                                      "font-medium",
-                                      isLoading &&
-                                        !isExpanded &&
-                                        "animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-500 via-blue-500 to-gray-500 bg-[length:200%_100%] bg-clip-text text-transparent",
-                                    )}
+                                <div className="mb-2 flex items-center gap-4">
+                                  <button
+                                    onClick={() => {
+                                      setExpandedIntermediates((prev) => {
+                                        const next = new Set(prev);
+                                        if (isExpanded) {
+                                          next.delete(groupKey);
+                                        } else {
+                                          next.add(groupKey);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
                                   >
-                                    {isExpanded ? "Hide" : "Show"} thinking
-                                    process ({intermediates.length} steps)
-                                  </span>
-                                </button>
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4" />
+                                    )}
+                                    <span
+                                      className={cn(
+                                        "font-medium",
+                                        isLoading &&
+                                          !isExpanded &&
+                                          "animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-500 via-blue-500 to-gray-500 bg-[length:200%_100%] bg-clip-text text-transparent",
+                                      )}
+                                    >
+                                      {isExpanded ? "Hide" : "Show"} thinking
+                                      process
+                                    </span>
+                                  </button>
+                                  <div className="flex items-center gap-1 text-gray-500">
+                                    (
+                                    <Switch
+                                      id={`toggle-tools-${groupKey}`}
+                                      checked={hideToolCalls}
+                                      onCheckedChange={(c) =>
+                                        setHideToolCalls(c)
+                                      }
+                                      disabled={!isExpanded}
+                                      className="scale-75 origin-left -mr-2"
+                                    />
+                                    <Label
+                                      htmlFor={`toggle-tools-${groupKey}`}
+                                      className={cn(
+                                        "text-sm text-gray-600",
+                                        isExpanded
+                                          ? "cursor-pointer"
+                                          : "cursor-not-allowed opacity-50",
+                                      )}
+                                    >
+                                      Hide Tool Calls
+                                    </Label>
+                                    )
+                                  </div>
+                                </div>
 
                                 {isExpanded && (
                                   <div className="flex flex-col gap-2 text-sm">

@@ -108,7 +108,7 @@ export function AssistantMessage({
   const contentString = getContentString(content);
   const [hideToolCalls] = useQueryState(
     "hideToolCalls",
-    parseAsBoolean.withDefault(false),
+    parseAsBoolean.withDefault(true),
   );
 
   const thread = useStreamContext();
@@ -144,47 +144,44 @@ export function AssistantMessage({
 
   // If this is an intermediate message, extract and display thinking/recommendation field or full content
   if (isIntermediate && message) {
+     // For intermediate messages, we might want a more compact representation
+     // e.g. just the tool calls or a summary.
+     // But for now, let's just render the content but maybe with less padding or different style?
+     // The user's request "displayed inside the expandable section" is handled by the parent.
+     // However, the commented out code suggests a desire for "Thinking" or "SQL query" extraction.
+     // Let's uncomment it but make it safe.
+
     const extracted = extractThinkingFromMessage(message);
-    const summaryText = extracted.thinking || extracted.recommendation;
-    const improvedSqlQuery = extracted.improved_sql_query;
+    const thinkingText = extracted.thinking; // Use thinking if available
 
     // Display summary if thinking/recommendation or improved_sql_query found
-    if (summaryText || improvedSqlQuery) {
+    if (thinkingText) {
       return (
-        <div className="mr-auto flex items-start gap-2">
-          <div className="flex flex-col gap-2">
-            {summaryText && (
-              <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                {summaryText}
+        <div className="mr-auto flex items-start gap-2 mt-2">
+          <div className="flex flex-col gap-1">
+            {thinkingText && (
+              <div className="text-sm text-gray-700">
+                {thinkingText}
               </div>
             )}
-            {improvedSqlQuery && (
-              <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                <div className="mb-2 font-medium">Improved SQL query:</div>
-                <MarkdownText>{`\`\`\`sql\n${improvedSqlQuery}\n\`\`\``}</MarkdownText>
-              </div>
+             {/* Also show tool calls if any */}
+             {!hideToolCalls && (
+              <>
+                {(hasToolCalls && toolCallsHaveContents && (
+                  <ToolCalls toolCalls={message.tool_calls} />
+                )) ||
+                  (hasAnthropicToolCalls && (
+                    <ToolCalls toolCalls={anthropicStreamedToolCalls} />
+                  )) ||
+                  (hasToolCalls && (
+                    <ToolCalls toolCalls={message.tool_calls} />
+                  ))}
+              </>
             )}
           </div>
         </div>
       );
     }
-
-    // Check if content starts with SQL code block
-    const isSqlQuery = contentString.trim().startsWith("```sql");
-
-    // Fallback: display the full content with markdown support
-    return (
-      <div className="mr-auto flex items-start gap-2">
-        <div className="flex flex-col gap-2">
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
-            {isSqlQuery && (
-              <div className="mb-2 font-medium">Generated SQL query:</div>
-            )}
-            <MarkdownText>{contentString}</MarkdownText>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (

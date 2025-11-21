@@ -2,6 +2,7 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { MarkdownText } from "../markdown-text";
 
 function isComplexValue(value: any): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
@@ -15,9 +16,9 @@ export function ToolCalls({
   if (!toolCalls || toolCalls.length === 0) return null;
 
   return (
-    <div className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2">
+    <div className="mx-auto grid w-full gap-2">
       {toolCalls.map((tc, idx) => {
-        const args = tc.args as Record<string, any>;
+        const { thinking, ...args } = tc.args as Record<string, any>;
         const hasArgs = Object.keys(args).length > 0;
         return (
           <div
@@ -26,12 +27,15 @@ export function ToolCalls({
           >
             <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
               <h3 className="font-medium text-gray-900">
-                {tc.name}
-                {tc.id && (
+                Tool Call:{" "}
+                <code className="rounded bg-gray-100 px-2 py-1">
+                  {tc.name}
+                </code>
+                {/* {tc.id && (
                   <code className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm">
                     {tc.id}
                   </code>
-                )}
+                )} */}
               </h3>
             </div>
             {hasArgs ? (
@@ -43,7 +47,11 @@ export function ToolCalls({
                         {key}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-500">
-                        {isComplexValue(value) ? (
+                        {key === "query" && typeof value === "string" ? (
+                          <div className="prose prose-sm max-w-none">
+                            <MarkdownText>{`\`\`\`sql\n${value}\n\`\`\``}</MarkdownText>
+                          </div>
+                        ) : isComplexValue(value) ? (
                           <code className="rounded bg-gray-50 px-2 py-1 font-mono text-sm break-all">
                             {JSON.stringify(value, null, 2)}
                           </code>
@@ -94,7 +102,7 @@ export function ToolResult({ message }: { message: ToolMessage }) {
       : contentStr;
 
   return (
-    <div className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2">
+    <div className="mx-auto grid w-full gap-2">
       <div className="overflow-hidden rounded-lg border border-gray-200">
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -108,11 +116,11 @@ export function ToolResult({ message }: { message: ToolMessage }) {
             ) : (
               <h3 className="font-medium text-gray-900">Tool Result</h3>
             )}
-            {message.tool_call_id && (
+            {/* {message.tool_call_id && (
               <code className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm">
                 {message.tool_call_id}
               </code>
-            )}
+            )} */}
           </div>
         </div>
         <motion.div
@@ -165,7 +173,11 @@ export function ToolResult({ message }: { message: ToolMessage }) {
                     </tbody>
                   </table>
                 ) : (
-                  <code className="block text-sm">{displayedContent}</code>
+                  <code className="block text-sm">
+                    {displayedContent || (
+                      <span className="italic text-gray-400 pl-2">Empty result</span>
+                    )}
+                  </code>
                 )}
               </motion.div>
             </AnimatePresence>

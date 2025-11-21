@@ -26,31 +26,17 @@ export function getContentString(content: Message["content"]): string {
  */
 export function extractThinkingFromMessage(message: any): {
   thinking: string | null;
-  recommendation: string | null;
-  improved_sql_query: string | null;
 } {
   if (!message)
-    return { thinking: null, recommendation: null, improved_sql_query: null };
+    return { thinking: null };
 
   let thinking: string | null = null;
-  let recommendation: string | null = null;
-  let improved_sql_query: string | null = null;
 
   // Check tool_calls array for fields
   if (message.tool_calls && Array.isArray(message.tool_calls)) {
     for (const toolCall of message.tool_calls) {
       if (toolCall.args?.thinking && !thinking) {
         thinking = toolCall.args.thinking;
-      }
-      if (toolCall.args?.recommendation && !recommendation) {
-        recommendation = toolCall.args.recommendation;
-      }
-      if (
-        typeof toolCall.args?.improved_sql_query === "string" &&
-        toolCall.args.improved_sql_query.trim() !== "" &&
-        !improved_sql_query
-      ) {
-        improved_sql_query = toolCall.args.improved_sql_query;
       }
     }
   }
@@ -59,16 +45,6 @@ export function extractThinkingFromMessage(message: any): {
   if (message.additional_kwargs) {
     if (message.additional_kwargs.thinking && !thinking) {
       thinking = message.additional_kwargs.thinking;
-    }
-    if (message.additional_kwargs.recommendation && !recommendation) {
-      recommendation = message.additional_kwargs.recommendation;
-    }
-    if (
-      typeof message.additional_kwargs.improved_sql_query === "string" &&
-      message.additional_kwargs.improved_sql_query.trim() !== "" &&
-      !improved_sql_query
-    ) {
-      improved_sql_query = message.additional_kwargs.improved_sql_query;
     }
   }
 
@@ -84,16 +60,6 @@ export function extractThinkingFromMessage(message: any): {
           if (args.thinking && !thinking) {
             thinking = args.thinking;
           }
-          if (args.recommendation && !recommendation) {
-            recommendation = args.recommendation;
-          }
-          if (
-            typeof args.improved_sql_query === "string" &&
-            args.improved_sql_query.trim() !== "" &&
-            !improved_sql_query
-          ) {
-            improved_sql_query = args.improved_sql_query;
-          }
         } catch {
           // Not valid JSON or no field
         }
@@ -108,22 +74,12 @@ export function extractThinkingFromMessage(message: any): {
       if (parsed.thinking && !thinking) {
         thinking = parsed.thinking;
       }
-      if (parsed.recommendation && !recommendation) {
-        recommendation = parsed.recommendation;
-      }
-      if (
-        typeof parsed.improved_sql_query === "string" &&
-        parsed.improved_sql_query.trim() !== "" &&
-        !improved_sql_query
-      ) {
-        improved_sql_query = parsed.improved_sql_query;
-      }
     } catch {
       // Not JSON, ignore
     }
   }
 
-  return { thinking, recommendation, improved_sql_query };
+  return { thinking };
 }
 
 /**
