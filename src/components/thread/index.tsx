@@ -317,13 +317,28 @@ export function Thread() {
       return;
     }
 
-    // During streaming, capture all AI and tool messages
-    stream.messages.forEach((msg) => {
-      if (msg.id && (msg.type === "ai" || msg.type === "tool")) {
+    const lastHumanIndex = stream.messages.findLastIndex(
+      (m) => m.type === "human",
+    );
+    const lastHuman = stream.messages[lastHumanIndex];
+
+    // If we have an optimistic message but the stream hasn't caught up yet (last human is different),
+    // then we are looking at old history. Don't accumulate these as "new" streamed messages.
+    if (optimisticMessage && lastHuman?.id !== optimisticMessage.id) {
+      return;
+    }
+
+    // During streaming, capture all AI and tool messages THAT FOLLOW THE LAST HUMAN
+    stream.messages.forEach((msg, index) => {
+      if (
+        index > lastHumanIndex &&
+        msg.id &&
+        (msg.type === "ai" || msg.type === "tool")
+      ) {
         setStreamedMessages((prev) => new Map(prev).set(msg.id!, msg));
       }
     });
-  }, [stream.messages, stream.isLoading]);
+  }, [stream.messages, stream.isLoading, optimisticMessage]);
 
   // Merge streamed messages with current messages and identify intermediate vs final messages
   const { messages, intermediateGroups } = useMemo(() => {
