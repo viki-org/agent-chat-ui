@@ -243,10 +243,27 @@ export function Thread() {
     number | null
   >(null);
 
+  // Track optimistic message to prevent flickering/disappearing
+  const [optimisticMessage, setOptimisticMessage] = useState<Message | null>(
+    null,
+  );
+
   // Track which intermediate message sections are expanded
   const [expandedIntermediates, setExpandedIntermediates] = useState<
     Set<string>
   >(new Set());
+
+  // Clear optimistic message when it appears in the stream or on error
+  useEffect(() => {
+    if (optimisticMessage) {
+      const messageInStream = stream.messages.find(
+        (m) => m.id === optimisticMessage.id,
+      );
+      if (messageInStream || stream.error) {
+        setOptimisticMessage(null);
+      }
+    }
+  }, [stream.messages, stream.error, optimisticMessage]);
 
   // Track when streaming starts/stops
   useEffect(() => {
@@ -318,6 +335,14 @@ export function Thread() {
     // 1. Build a complete list of messages from stream.messages
     // We'll use this as the base for historical turns
     const baseMessages = [...stream.messages];
+
+    // Add optimistic message if it exists and is not in baseMessages
+    if (
+      optimisticMessage &&
+      !baseMessages.find((m) => m.id === optimisticMessage.id)
+    ) {
+      baseMessages.push(optimisticMessage);
+    }
 
     // 2. Identify the current turn (the sequence after the last Human message)
     const lastHumanIndex = baseMessages.findLastIndex(
@@ -436,7 +461,14 @@ export function Thread() {
       if (isActiveTurn && streamedMessages.size > 0) {
         // Use streamedMessages as the source for AIs in this turn
         // streamedMessages contains ALL AI/Tool messages for the current stream
-        currentTurnAIs = Array.from(streamedMessages.values());
+        const allStreamed = Array.from(streamedMessages.values());
+
+        // Filter out messages that are already in baseMessages (part of previous turns)
+        const previousMessageIds = new Set(
+          baseMessages.slice(0, lastHumanIndex).map((m) => m.id),
+        );
+
+        currentTurnAIs = allStreamed.filter((m) => !previousMessageIds.has(m.id));
       }
 
       finalizeTurn(currentTurnHuman, currentTurnAIs);
@@ -451,6 +483,7 @@ export function Thread() {
     streamedMessages,
     stream.isLoading,
     persistedIntermediateGroups,
+    optimisticMessage,
   ]);
 
   const isLoading = stream.isLoading;
@@ -469,6 +502,7 @@ export function Thread() {
     setPersistedIntermediateGroups(new Map());
     setExpandedIntermediates(new Set());
     setStreamingStartMessageCount(null);
+    setOptimisticMessage(null);
   };
 
   useEffect(() => {
@@ -521,6 +555,8 @@ export function Thread() {
         ...contentBlocks.map(contentBlockToMessageContent),
       ] as Message["content"],
     };
+
+    setOptimisticMessage(newHumanMessage);
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
