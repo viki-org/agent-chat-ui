@@ -1,5 +1,5 @@
 import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { MarkdownText } from "../markdown-text";
@@ -39,30 +39,31 @@ export function ToolCalls({
               </h3>
             </div>
             {hasArgs ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <tbody className="divide-y divide-gray-200">
-                  {Object.entries(args).map(([key, value], argIdx) => (
-                    <tr key={argIdx}>
-                      <td className="px-4 py-2 text-sm font-medium whitespace-nowrap text-gray-900">
-                        {key}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">
-                        {key === "query" && typeof value === "string" ? (
-                          <div className="prose prose-sm max-w-none">
-                            <MarkdownText>{`\`\`\`sql\n${value}\n\`\`\``}</MarkdownText>
-                          </div>
-                        ) : isComplexValue(value) ? (
-                          <code className="rounded bg-gray-50 px-2 py-1 font-mono text-sm break-all">
-                            {JSON.stringify(value, null, 2)}
-                          </code>
-                        ) : (
-                          String(value)
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 p-4 items-center">
+                {Object.entries(args).map(([key, value], argIdx) => (
+                  <Fragment key={argIdx}>
+                    {argIdx > 0 && (
+                      <div className="col-span-2 border-t border-gray-200" />
+                    )}
+                    <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                      {key}
+                    </div>
+                    <div className="text-sm text-gray-700 min-w-0">
+                      {key === "query" && typeof value === "string" ? (
+                        <div className="prose prose-sm max-w-none overflow-x-auto">
+                          <MarkdownText>{`\`\`\`sql\n${value}\n\`\`\``}</MarkdownText>
+                        </div>
+                      ) : isComplexValue(value) ? (
+                        <code className="rounded bg-gray-50 px-2 py-1 font-mono text-sm break-all">
+                          {JSON.stringify(value, null, 2)}
+                        </code>
+                      ) : (
+                        String(value)
+                      )}
+                    </div>
+                  </Fragment>
+                ))}
+              </div>
             ) : (
               <code className="block p-3 text-sm">{"{}"}</code>
             )}
