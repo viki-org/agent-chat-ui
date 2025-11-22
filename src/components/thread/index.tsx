@@ -126,7 +126,14 @@ function extractNameFromEmail(email: string | null): string | null {
 }
 
 function PersonalizedGreeting({ name }: { name: string | null }) {
-  if (!name) return null;
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || !name) return null;
+
   return (
     <div className="mb-4 rounded-lg p-4 text-center text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 bg-clip-text text-transparent">
       Hello, {name}
