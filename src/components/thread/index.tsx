@@ -903,9 +903,9 @@ export function Thread() {
                                     (
                                     <Switch
                                       id={`toggle-tools-${groupKey}`}
-                                      checked={hideToolCalls}
+                                      checked={!hideToolCalls}
                                       onCheckedChange={(c) =>
-                                        setHideToolCalls(c)
+                                        setHideToolCalls(!c)
                                       }
                                       disabled={!isExpanded}
                                       className="-mr-2 origin-left scale-75"
@@ -919,7 +919,7 @@ export function Thread() {
                                           : "cursor-not-allowed opacity-50",
                                       )}
                                     >
-                                      Hide Tool Calls
+                                      Show Tool Calls
                                     </Label>
                                     )
                                   </div>
@@ -1090,14 +1090,14 @@ export function Thread() {
                           <div className="flex items-center space-x-2">
                             <Switch
                               id="render-tool-calls"
-                              checked={hideToolCalls ?? false}
-                              onCheckedChange={setHideToolCalls}
+                              checked={!hideToolCalls}
+                              onCheckedChange={(c) => setHideToolCalls(!c)}
                             />
                             <Label
                               htmlFor="render-tool-calls"
                               className="text-sm text-gray-600"
                             >
-                              Hide Tool Calls
+                              Show Tool Calls
                             </Label>
                           </div>
                         </div>
