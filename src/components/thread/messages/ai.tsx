@@ -93,6 +93,33 @@ function Interrupt({
   );
 }
 
+function TokenUsageDisplay({ usage }: { usage: any }) {
+  if (!usage) return null;
+  const {
+    input_tokens,
+    output_tokens,
+    total_tokens,
+    input_token_details,
+    output_token_details,
+  } = usage;
+  const cacheRead = input_token_details?.cache_read ?? 0;
+  const reasoning = output_token_details?.reasoning ?? 0;
+
+  return (
+    <div className="text-xs text-gray-500 italic">
+      Token count: Input: {input_tokens}{" "}
+      {cacheRead > 0 && (
+        <span className="text-gray-400">(Cache read: {cacheRead})</span>
+      )}{" "}
+      • Output: {output_tokens}{" "}
+      {reasoning > 0 && (
+        <span className="text-gray-400">(Reasoning: {reasoning})</span>
+      )}{" "}
+      • Total: {total_tokens}
+    </div>
+  );
+}
+
 export function AssistantMessage({
   message,
   isLoading,
@@ -144,12 +171,12 @@ export function AssistantMessage({
 
   // If this is an intermediate message, extract and display thinking/recommendation field or full content
   if (isIntermediate && message) {
-     // For intermediate messages, we might want a more compact representation
-     // e.g. just the tool calls or a summary.
-     // But for now, let's just render the content but maybe with less padding or different style?
-     // The user's request "displayed inside the expandable section" is handled by the parent.
-     // However, the commented out code suggests a desire for "Thinking" or "SQL query" extraction.
-     // Let's uncomment it but make it safe.
+    // For intermediate messages, we might want a more compact representation
+    // e.g. just the tool calls or a summary.
+    // But for now, let's just render the content but maybe with less padding or different style?
+    // The user's request "displayed inside the expandable section" is handled by the parent.
+    // However, the commented out code suggests a desire for "Thinking" or "SQL query" extraction.
+    // Let's uncomment it but make it safe.
 
     const extracted = extractThinkingFromMessage(message);
     const thinkingText = extracted.thinking; // Use thinking if available
@@ -157,15 +184,14 @@ export function AssistantMessage({
     // Display summary if thinking/recommendation or improved_sql_query found
     if (thinkingText) {
       return (
-        <div className="mr-auto flex items-start gap-2 mt-2">
+        <div className="mt-2 mr-auto flex items-start gap-2">
           <div className="flex flex-col gap-1">
             {thinkingText && (
-              <div className="text-sm text-gray-700">
-                {thinkingText}
-              </div>
+              <div className="text-sm text-gray-700">{thinkingText}</div>
             )}
-             {/* Also show tool calls if any */}
-             {!hideToolCalls && (
+            <TokenUsageDisplay usage={(message as any).usage_metadata} />
+            {/* Also show tool calls if any */}
+            {!hideToolCalls && (
               <>
                 {(hasToolCalls && toolCallsHaveContents && (
                   <ToolCalls toolCalls={message.tool_calls} />
@@ -224,6 +250,7 @@ export function AssistantMessage({
                 thread={thread}
               />
             )}
+            <TokenUsageDisplay usage={(message as any).usage_metadata} />
             <Interrupt
               interruptValue={threadInterrupt?.value}
               isLastMessage={isLastMessage}
