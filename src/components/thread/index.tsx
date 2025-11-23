@@ -12,11 +12,8 @@ import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
-import {
-  AssistantMessage,
-  AssistantMessageLoading,
-  calculateAggregatedUsage,
-} from "./messages/ai";
+import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
+import { calculateAggregatedUsage } from "@/lib/token-usage";
 import { HumanMessage } from "./messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
@@ -998,16 +995,8 @@ export function Thread() {
                               message,
                             ];
 
-                            // Debug logging
-                            console.log(
-                              "  Message IDs:",
-                              msgsToAggregate.map((m) => m.id),
-                            );
-
                             aggregatedUsage =
                               calculateAggregatedUsage(msgsToAggregate);
-
-                            console.log("  Aggregated usage:", aggregatedUsage);
                           }
                         }
 
