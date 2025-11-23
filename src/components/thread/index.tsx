@@ -12,7 +12,11 @@ import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
-import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
+import {
+  AssistantMessage,
+  AssistantMessageLoading,
+  calculateAggregatedUsage,
+} from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
@@ -135,7 +139,7 @@ function PersonalizedGreeting({ name }: { name: string | null }) {
   if (!isMounted || !name) return null;
 
   return (
-    <div className="mb-4 rounded-lg p-4 text-center text-4xl font-extrabold bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 bg-clip-text text-transparent">
+    <div className="mb-4 rounded-lg bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 bg-clip-text p-4 text-center text-4xl font-extrabold text-transparent">
       Hello, {name}
     </div>
   );
@@ -389,29 +393,29 @@ export function Thread() {
 
         // If we have streamed messages, they are the source of truth for the current turn's AI/Tool messages
         if (streamedMsgsArray.length > 0) {
-           // The last message in the stream is the "final" one (so far)
-           // All others are intermediate
-           const allCurrentTurnMsgs = [...streamedMsgsArray];
+          // The last message in the stream is the "final" one (so far)
+          // All others are intermediate
+          const allCurrentTurnMsgs = [...streamedMsgsArray];
 
-           // If the stream is done, we might want to ensure we didn't miss anything from baseMessages
-           // but usually streamedMessages is more complete for the active turn.
+          // If the stream is done, we might want to ensure we didn't miss anything from baseMessages
+          // but usually streamedMessages is more complete for the active turn.
 
-           // Logic:
-           // All messages in this turn EXCEPT the very last one are intermediate.
-           // The last one is "final" (displayed in main thread).
+          // Logic:
+          // All messages in this turn EXCEPT the very last one are intermediate.
+          // The last one is "final" (displayed in main thread).
 
-           const finalMsg = allCurrentTurnMsgs[allCurrentTurnMsgs.length - 1];
-           const intermediates = allCurrentTurnMsgs.slice(0, -1);
+          const finalMsg = allCurrentTurnMsgs[allCurrentTurnMsgs.length - 1];
+          const intermediates = allCurrentTurnMsgs.slice(0, -1);
 
-           intermediateGroupsMap.set(lastHumanMsg.id, intermediates);
+          intermediateGroupsMap.set(lastHumanMsg.id, intermediates);
 
-           // We need to make sure the main `messages` list reflects this.
-           // It should contain: ...previous_turns, lastHumanMsg, finalMsg
-           // But wait, `baseMessages` might contain stale versions or missing steps.
-           // We should replace the tail of `baseMessages` (after lastHuman) with `[finalMsg]`.
+          // We need to make sure the main `messages` list reflects this.
+          // It should contain: ...previous_turns, lastHumanMsg, finalMsg
+          // But wait, `baseMessages` might contain stale versions or missing steps.
+          // We should replace the tail of `baseMessages` (after lastHuman) with `[finalMsg]`.
 
-           // However, we must be careful not to duplicate if finalMsg is already there.
-           // And we must ensure we don't lose the human message.
+          // However, we must be careful not to duplicate if finalMsg is already there.
+          // And we must ensure we don't lose the human message.
         }
       }
     }
@@ -441,8 +445,8 @@ export function Thread() {
 
       // Merge persisted and current AIs, deduplicating by ID
       const allAIsMap = new Map<string, Message>();
-      persisted.forEach(m => m.id && allAIsMap.set(m.id, m));
-      ais.forEach(m => m.id && allAIsMap.set(m.id, m));
+      persisted.forEach((m) => m.id && allAIsMap.set(m.id, m));
+      ais.forEach((m) => m.id && allAIsMap.set(m.id, m));
 
       const allAIs = Array.from(allAIsMap.values());
 
@@ -490,7 +494,9 @@ export function Thread() {
           baseMessages.slice(0, lastHumanIndex).map((m) => m.id),
         );
 
-        currentTurnAIs = allStreamed.filter((m) => !previousMessageIds.has(m.id));
+        currentTurnAIs = allStreamed.filter(
+          (m) => !previousMessageIds.has(m.id),
+        );
       }
 
       finalizeTurn(currentTurnHuman, currentTurnAIs);
@@ -905,7 +911,7 @@ export function Thread() {
                                         setHideToolCalls(c)
                                       }
                                       disabled={!isExpanded}
-                                      className="scale-75 origin-left -mr-2"
+                                      className="-mr-2 origin-left scale-75"
                                     />
                                     <Label
                                       htmlFor={`toggle-tools-${groupKey}`}
@@ -947,12 +953,71 @@ export function Thread() {
                         return humanMsg;
                       } else {
                         // Render AI/tool message (final message, not intermediate)
+
+                        // Find the preceding human message to get the full context for aggregation
+                        let precedingHumanIndex = index - 1;
+                        while (
+                          precedingHumanIndex >= 0 &&
+                          messages[precedingHumanIndex].type !== "human"
+                        ) {
+                          precedingHumanIndex--;
+                        }
+
+                        let aggregatedUsage = undefined;
+                        if (precedingHumanIndex >= 0) {
+                          const humanMsg = messages[precedingHumanIndex];
+
+                          // We only show aggregated usage on the LAST AI message of the turn.
+                          // Find the next human message to determine the boundary of this turn
+                          let nextHumanIndex = index + 1;
+                          while (
+                            nextHumanIndex < messages.length &&
+                            messages[nextHumanIndex].type !== "human"
+                          ) {
+                            nextHumanIndex++;
+                          }
+
+                          // Check if there are any AI messages between current index and next human (or end)
+                          const nextMessages = messages.slice(
+                            index + 1,
+                            nextHumanIndex,
+                          );
+                          const isLastAI = !nextMessages.some(
+                            (m) => m.type === "ai",
+                          );
+
+                          if (isLastAI) {
+                            // Get intermediates for this human message
+                            // Note: intermediateGroups already contains ONLY the intermediates for this specific human message
+                            const intermediates = humanMsg.id
+                              ? intermediateGroups.get(humanMsg.id)
+                              : undefined;
+
+                            const msgsToAggregate = [
+                              ...(intermediates || []),
+                              message,
+                            ];
+
+                            // Debug logging
+                            console.log(
+                              "  Message IDs:",
+                              msgsToAggregate.map((m) => m.id),
+                            );
+
+                            aggregatedUsage =
+                              calculateAggregatedUsage(msgsToAggregate);
+
+                            console.log("  Aggregated usage:", aggregatedUsage);
+                          }
+                        }
+
                         return (
                           <AssistantMessage
                             key={message.id || `${message.type}-${index}`}
                             message={message}
                             isLoading={isLoading}
                             handleRegenerate={handleRegenerate}
+                            aggregatedUsage={aggregatedUsage}
                           />
                         );
                       }
