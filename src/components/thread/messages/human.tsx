@@ -2,6 +2,7 @@ import { useStreamContext } from "@/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { getContentString } from "../utils";
+import { MarkdownText } from "../markdown-text";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
@@ -111,9 +112,9 @@ export function HumanMessage({
             )}
             {/* Render text if present, otherwise fallback to file/image name */}
             {contentString ? (
-              <p className="bg-muted ml-auto w-fit rounded-3xl px-4 py-2 text-right whitespace-pre-wrap">
-                {contentString}
-              </p>
+              <div className="bg-muted ml-auto w-fit rounded-3xl px-4 py-2">
+                <MarkdownText>{contentString}</MarkdownText>
+              </div>
             ) : null}
           </div>
         )}

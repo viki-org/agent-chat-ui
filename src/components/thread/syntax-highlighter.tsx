@@ -30,7 +30,14 @@ export const SyntaxHighlighter: FC<SyntaxHighlighterProps> = ({
         margin: 0,
         width: "100%",
         background: "transparent",
-        padding: "1.5rem 1rem",
+      }}
+      codeTagProps={{
+        style: {
+          display: "block",
+          width: "fit-content",
+          minWidth: "100%",
+          background: "transparent",
+        },
       }}
       className={className}
     >

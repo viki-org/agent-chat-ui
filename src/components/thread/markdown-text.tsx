@@ -64,7 +64,7 @@ const defaultComponents: any = {
   h1: ({ className, ...props }: { className?: string }) => (
     <h1
       className={cn(
-        "mb-8 scroll-m-20 text-4xl font-extrabold tracking-tight last:mb-0",
+        "mb-4 scroll-m-20 text-4xl font-extrabold tracking-tight last:mb-0",
         className,
       )}
       {...props}
@@ -73,7 +73,7 @@ const defaultComponents: any = {
   h2: ({ className, ...props }: { className?: string }) => (
     <h2
       className={cn(
-        "mt-8 mb-4 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0 last:mb-0",
+        "mt-4 mb-2 scroll-m-20 text-3xl font-semibold tracking-tight first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -82,7 +82,7 @@ const defaultComponents: any = {
   h3: ({ className, ...props }: { className?: string }) => (
     <h3
       className={cn(
-        "mt-6 mb-4 scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 last:mb-0",
+        "mt-4 mb-2 scroll-m-20 text-2xl font-semibold tracking-tight first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -91,7 +91,7 @@ const defaultComponents: any = {
   h4: ({ className, ...props }: { className?: string }) => (
     <h4
       className={cn(
-        "mt-6 mb-4 scroll-m-20 text-xl font-semibold tracking-tight first:mt-0 last:mb-0",
+        "mt-4 mb-2 scroll-m-20 text-xl font-semibold tracking-tight first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -100,7 +100,7 @@ const defaultComponents: any = {
   h5: ({ className, ...props }: { className?: string }) => (
     <h5
       className={cn(
-        "my-4 text-lg font-semibold first:mt-0 last:mb-0",
+        "my-2 text-lg font-semibold first:mt-0 last:mb-0",
         className,
       )}
       {...props}
@@ -108,13 +108,13 @@ const defaultComponents: any = {
   ),
   h6: ({ className, ...props }: { className?: string }) => (
     <h6
-      className={cn("my-4 font-semibold first:mt-0 last:mb-0", className)}
+      className={cn("my-2 font-semibold first:mt-0 last:mb-0", className)}
       {...props}
     />
   ),
   p: ({ className, ...props }: { className?: string }) => (
     <p
-      className={cn("mt-5 mb-5 leading-7 first:mt-0 last:mb-0", className)}
+      className={cn("my-2 leading-7 first:mt-0 last:mb-0", className)}
       {...props}
     />
   ),
@@ -135,26 +135,26 @@ const defaultComponents: any = {
   ),
   ul: ({ className, ...props }: { className?: string }) => (
     <ul
-      className={cn("my-5 ml-6 list-disc [&>li]:mt-2", className)}
+      className={cn("my-2 ml-6 list-disc [&>li]:mt-2", className)}
       {...props}
     />
   ),
   ol: ({ className, ...props }: { className?: string }) => (
     <ol
-      className={cn("my-5 ml-6 list-decimal [&>li]:mt-2", className)}
+      className={cn("my-2 ml-6 list-decimal [&>li]:mt-2", className)}
       {...props}
     />
   ),
   hr: ({ className, ...props }: { className?: string }) => (
     <hr
-      className={cn("my-5 border-b", className)}
+      className={cn("my-2 border-b", className)}
       {...props}
     />
   ),
   table: ({ className, ...props }: { className?: string }) => (
     <table
       className={cn(
-        "my-5 w-full border-separate border-spacing-0 overflow-y-auto",
+        "my-2 w-full border-separate border-spacing-0 overflow-y-auto",
         className,
       )}
       {...props}
@@ -194,9 +194,9 @@ const defaultComponents: any = {
     />
   ),
   pre: ({ className, ...props }: { className?: string }) => (
-    <pre
+    <div
       className={cn(
-        "max-w-4xl overflow-x-auto rounded-lg bg-black text-white",
+        "code-block-wrapper max-w-4xl overflow-hidden rounded-lg bg-black text-white",
         className,
       )}
       {...props}
@@ -209,6 +209,7 @@ const defaultComponents: any = {
   }: {
     className?: string;
     children: React.ReactNode;
+    inline?: boolean;
   }) => {
     const match = /language-(\w+)/.exec(className || "");
 
@@ -224,7 +225,7 @@ const defaultComponents: any = {
           />
           <SyntaxHighlighter
             language={language}
-            className={className}
+            className={cn("p-4", className)}
           >
             {code}
           </SyntaxHighlighter>
@@ -245,7 +246,7 @@ const defaultComponents: any = {
 
 const MarkdownTextImpl: FC<{ children: string }> = ({ children }) => {
   return (
-    <div className="markdown-content">
+    <div className="markdown-content [&_:not(.code-block-wrapper)>code]:bg-muted/50 [&_.code-block-wrapper>code]:block [&_.code-block-wrapper>code]:overflow-x-auto [&_.code-block-wrapper>code]:p-4 [&_:not(.code-block-wrapper)>code]:rounded-sm [&_:not(.code-block-wrapper)>code]:px-1 [&_:not(.code-block-wrapper)>code]:py-0.5">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
