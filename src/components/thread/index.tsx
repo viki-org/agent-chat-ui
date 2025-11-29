@@ -163,7 +163,7 @@ function SampleMessages({
   onSelectMessage: (message: string) => void;
 }) {
   return (
-    <div className="max-w-4xl text-justify rounded-lg p-4">
+    <div className="max-w-4xl rounded-lg p-4 text-justify">
       <h2 className="mb-2 font-semibold text-gray-800 dark:text-gray-200">
         Sample messages:
       </h2>
@@ -758,7 +758,7 @@ export function Thread() {
               className={cn(
                 "relative z-10 flex items-center justify-between gap-3 p-2",
                 isTemporaryActive && chatStarted
-                  ? "to-gray-0 dark:from-muted dark:via-muted/50 dark:to-background bg-gradient-to-b from-gray-300 via-gray-200"
+                  ? "to-gray-0 dark:from-gray-700 dark:via-muted/50 dark:to-background bg-gradient-to-b from-gray-300 via-gray-200"
                   : "bg-background",
               )}
             >
