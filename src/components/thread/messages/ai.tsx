@@ -186,7 +186,7 @@ export function AssistantMessage({
     // Display summary if thinking/recommendation or improved_sql_query found
     if (thinkingText) {
       return (
-        <div className="mt-2 mr-auto flex items-start gap-2">
+        <div className="mr-auto flex items-start gap-2">
           <div className="flex flex-col gap-1">
             {thinkingText && (
               <div className="text-sm whitespace-pre-line text-gray-700">
@@ -197,7 +197,7 @@ export function AssistantMessage({
             {aggregatedUsage && <TokenUsageDisplay usage={aggregatedUsage} />}
             {/* Also show tool calls if any */}
             {!hideToolCalls && (
-              <>
+              <div className="ml-4">
                 {(hasToolCalls && toolCallsHaveContents && (
                   <ToolCalls toolCalls={message.tool_calls} />
                 )) ||
@@ -207,7 +207,7 @@ export function AssistantMessage({
                   (hasToolCalls && (
                     <ToolCalls toolCalls={message.tool_calls} />
                   ))}
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -219,14 +219,14 @@ export function AssistantMessage({
     <div className="group mr-auto flex items-start gap-2">
       <div className="flex flex-col gap-2">
         {isToolResult ? (
-          <>
+          <div className="ml-4">
             <ToolResult message={message} />
             <Interrupt
               interruptValue={threadInterrupt?.value}
               isLastMessage={isLastMessage}
               hasNoAIOrToolMessages={hasNoAIOrToolMessages}
             />
-          </>
+          </div>
         ) : (
           <>
             {contentString.length > 0 && (
@@ -236,7 +236,7 @@ export function AssistantMessage({
             )}
 
             {!hideToolCalls && (
-              <>
+              <div className="ml-4">
                 {(hasToolCalls && toolCallsHaveContents && (
                   <ToolCalls toolCalls={message.tool_calls} />
                 )) ||
@@ -246,7 +246,7 @@ export function AssistantMessage({
                   (hasToolCalls && (
                     <ToolCalls toolCalls={message.tool_calls} />
                   ))}
-              </>
+              </div>
             )}
 
             {message && (

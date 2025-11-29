@@ -31,6 +31,7 @@ import {
   Plus,
   ChevronDown,
   ChevronRight,
+  Check,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -865,84 +866,96 @@ export function Thread() {
                               key={message.id || `${message.type}-${index}`}
                             >
                               {humanMsg}
-                              {/* Collapsible intermediate messages section */}
-                              <div className="ml-4 border-l-2 border-gray-200 pl-4">
-                                <div className="mb-2 flex items-center gap-4">
-                                  <button
-                                    onClick={() => {
-                                      setExpandedIntermediates((prev) => {
-                                        const next = new Set(prev);
-                                        if (isExpanded) {
-                                          next.delete(groupKey);
-                                        } else {
-                                          next.add(groupKey);
-                                        }
-                                        return next;
-                                      });
-                                    }}
-                                    className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronDown className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronRight className="h-4 w-4" />
-                                    )}
-                                    <span
-                                      className={cn(
-                                        "font-medium",
-                                        isLoading &&
-                                          !isExpanded &&
-                                          "animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-500 via-blue-500 to-gray-500 bg-[length:200%_100%] bg-clip-text text-transparent",
-                                      )}
-                                    >
-                                      {isExpanded ? "Hide" : "Show"} thinking
-                                      process
-                                    </span>
-                                  </button>
-                                  <div className="flex items-center gap-1 text-gray-500">
-                                    (
-                                    <Switch
-                                      id={`toggle-tools-${groupKey}`}
-                                      checked={!hideToolCalls}
-                                      onCheckedChange={(c) =>
-                                        setHideToolCalls(!c)
+                              {/* Thinking toggle button outside the collapsible section */}
+                              <div className="flex items-center gap-4">
+                                <button
+                                  onClick={() => {
+                                    setExpandedIntermediates((prev) => {
+                                      const next = new Set(prev);
+                                      if (isExpanded) {
+                                        next.delete(groupKey);
+                                      } else {
+                                        next.add(groupKey);
                                       }
-                                      disabled={!isExpanded}
-                                      className="-mr-2 origin-left scale-75"
-                                    />
-                                    <Label
-                                      htmlFor={`toggle-tools-${groupKey}`}
-                                      className={cn(
-                                        "text-sm text-gray-600",
-                                        isExpanded
-                                          ? "cursor-pointer"
-                                          : "cursor-not-allowed opacity-50",
-                                      )}
-                                    >
-                                      Show Tool Calls
-                                    </Label>
-                                    )
-                                  </div>
+                                      return next;
+                                    });
+                                  }}
+                                  className="ml-2 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                  <span
+                                    className={cn(
+                                      "font-medium",
+                                      isLoading &&
+                                        !isExpanded &&
+                                        "animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-500 via-blue-500 to-gray-500 bg-[length:200%_100%] bg-clip-text text-transparent",
+                                    )}
+                                  >
+                                    {isExpanded ? "Hide" : "Show"} thinking
+                                    process
+                                  </span>
+                                </button>
+                                <div className="flex items-center gap-1 text-gray-500">
+                                  (
+                                  <Switch
+                                    id={`toggle-tools-${groupKey}`}
+                                    checked={!hideToolCalls}
+                                    onCheckedChange={(c) =>
+                                      setHideToolCalls(!c)
+                                    }
+                                    disabled={!isExpanded}
+                                    className="-mr-2 origin-left scale-75"
+                                  />
+                                  <Label
+                                    htmlFor={`toggle-tools-${groupKey}`}
+                                    className={cn(
+                                      "text-sm text-gray-600",
+                                      isExpanded
+                                        ? "cursor-pointer"
+                                        : "cursor-not-allowed opacity-50",
+                                    )}
+                                  >
+                                    Show Tool Calls
+                                  </Label>
+                                  )
                                 </div>
+                              </div>
 
-                                {isExpanded && (
-                                  <div className="flex flex-col gap-2 text-sm">
+                              {/* Collapsible intermediate messages section */}
+                              {isExpanded && (
+                                <div className="relative ml-4 border-l-2 border-gray-200 pl-4">
+                                  <div className="flex flex-col gap-4 text-sm">
                                     {intermediates.map((intMsg, intIndex) => (
-                                      <div
-                                        key={intMsg.id || `int-${intIndex}`}
-                                        className="opacity-70"
-                                      >
-                                        <AssistantMessage
-                                          message={intMsg}
-                                          isLoading={false}
-                                          handleRegenerate={handleRegenerate}
-                                          isIntermediate={true}
-                                        />
-                                      </div>
+                                      (intMsg.type === "ai" || !hideToolCalls) && (
+                                        <div
+                                          key={intMsg.id || `int-${intIndex}`}
+                                          className="relative"
+                                        >
+                                          {/* Green checkmark aligned with vertical line - only for AI messages (not tool results) */}
+                                          {intMsg.type === "ai" && (
+                                            <div className="absolute -left-[1.7rem] flex h-5 w-5 items-center justify-center rounded-full bg-green-600">
+                                              <Check className="h-3 w-3 text-white" />
+                                            </div>
+                                          )}
+                                          {/* Message content with opacity */}
+                                          <div className="opacity-70">
+                                            <AssistantMessage
+                                              message={intMsg}
+                                              isLoading={false}
+                                              handleRegenerate={handleRegenerate}
+                                              isIntermediate={true}
+                                            />
+                                          </div>
+                                        </div>
+                                      )
                                     ))}
                                   </div>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </React.Fragment>
                           );
                         }
