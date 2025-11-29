@@ -83,34 +83,3 @@ export function extractThinkingFromMessage(message: any): {
 
   return { thinking };
 }
-
-/**
- * Extracts the 'thinking' field from structured LLM responses (if present).
- * This is used to display concise summaries in intermediate messages.
- * @param content The message content
- * @returns The thinking text if found, or null
- * @deprecated Use extractThinkingFromMessage instead
- */
-export function extractThinkingFromContent(
-  content: Message["content"],
-): string | null {
-  const contentString = getContentString(content);
-  if (!contentString) return null;
-
-  try {
-    // Try to parse as JSON
-    const parsed = JSON.parse(contentString);
-    if (parsed && typeof parsed === "object" && "thinking" in parsed) {
-      return parsed.thinking;
-    }
-  } catch {
-    // Not valid JSON, might be partial JSON or plain text
-    // Try to extract thinking field using regex as fallback
-    const thinkingMatch = contentString.match(/"thinking":\s*"([^"]*)"/);
-    if (thinkingMatch && thinkingMatch[1]) {
-      return thinkingMatch[1];
-    }
-  }
-
-  return null;
-}

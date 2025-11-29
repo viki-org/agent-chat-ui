@@ -167,6 +167,11 @@ export function AssistantMessage({
   const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
+  const toolCallsToRender =
+    (hasToolCalls && toolCallsHaveContents && message.tool_calls) ||
+    (hasAnthropicToolCalls && anthropicStreamedToolCalls) ||
+    (hasToolCalls && message.tool_calls);
+
   if (isToolResult && hideToolCalls) {
     return null;
   }
@@ -196,17 +201,9 @@ export function AssistantMessage({
             {/* Only show aggregated usage if calculated */}
             {aggregatedUsage && <TokenUsageDisplay usage={aggregatedUsage} />}
             {/* Also show tool calls if any */}
-            {!hideToolCalls && (
+            {!hideToolCalls && toolCallsToRender && (
               <div className="ml-4">
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={message.tool_calls} />
-                )) ||
-                  (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={anthropicStreamedToolCalls} />
-                  )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={message.tool_calls} />
-                  ))}
+                <ToolCalls toolCalls={toolCallsToRender} />
               </div>
             )}
           </div>
@@ -235,17 +232,9 @@ export function AssistantMessage({
               </div>
             )}
 
-            {!hideToolCalls && (
+            {!hideToolCalls && toolCallsToRender && (
               <div className="ml-4">
-                {(hasToolCalls && toolCallsHaveContents && (
-                  <ToolCalls toolCalls={message.tool_calls} />
-                )) ||
-                  (hasAnthropicToolCalls && (
-                    <ToolCalls toolCalls={anthropicStreamedToolCalls} />
-                  )) ||
-                  (hasToolCalls && (
-                    <ToolCalls toolCalls={message.tool_calls} />
-                  ))}
+                <ToolCalls toolCalls={toolCallsToRender} />
               </div>
             )}
 

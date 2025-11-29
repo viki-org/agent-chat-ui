@@ -929,30 +929,34 @@ export function Thread() {
                               {isExpanded && (
                                 <div className="relative ml-4 border-l-2 border-gray-200 pl-4">
                                   <div className="flex flex-col gap-4 text-sm">
-                                    {intermediates.map((intMsg, intIndex) => (
-                                      (intMsg.type === "ai" || !hideToolCalls) && (
-                                        <div
-                                          key={intMsg.id || `int-${intIndex}`}
-                                          className="relative"
-                                        >
-                                          {/* Green checkmark aligned with vertical line - only for AI messages (not tool results) */}
-                                          {intMsg.type === "ai" && (
-                                            <div className="absolute -left-[1.7rem] flex h-5 w-5 items-center justify-center rounded-full bg-green-600">
-                                              <Check className="h-3 w-3 text-white" />
+                                    {intermediates.map(
+                                      (intMsg, intIndex) =>
+                                        (intMsg.type === "ai" ||
+                                          !hideToolCalls) && (
+                                          <div
+                                            key={intMsg.id || `int-${intIndex}`}
+                                            className="relative"
+                                          >
+                                            {/* Green checkmark aligned with vertical line - only for AI messages (not tool results) */}
+                                            {intMsg.type === "ai" && (
+                                              <div className="absolute -left-[1.7rem] flex h-5 w-5 items-center justify-center rounded-full bg-green-600">
+                                                <Check className="h-3 w-3 text-white" />
+                                              </div>
+                                            )}
+                                            {/* Message content with opacity */}
+                                            <div className="opacity-70">
+                                              <AssistantMessage
+                                                message={intMsg}
+                                                isLoading={false}
+                                                handleRegenerate={
+                                                  handleRegenerate
+                                                }
+                                                isIntermediate={true}
+                                              />
                                             </div>
-                                          )}
-                                          {/* Message content with opacity */}
-                                          <div className="opacity-70">
-                                            <AssistantMessage
-                                              message={intMsg}
-                                              isLoading={false}
-                                              handleRegenerate={handleRegenerate}
-                                              isIntermediate={true}
-                                            />
                                           </div>
-                                        </div>
-                                      )
-                                    ))}
+                                        ),
+                                    )}
                                   </div>
                                 </div>
                               )}
