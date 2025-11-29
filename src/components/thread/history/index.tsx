@@ -211,7 +211,7 @@ function ThreadList({
               disabled={isDeleting || isDuplicating}
               className={cn(
                 "w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75",
-                t.thread_id === threadId && "bg-accent",
+                t.thread_id === threadId && "bg-accent dark:bg-gray-700",
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -293,10 +293,10 @@ export default function ThreadHistory({
 
   return (
     <>
-      <div className="shadow-inner-right hidden h-screen w-[300px] shrink-0 flex-col items-start justify-start gap-6 border-r-[1px] border-slate-300 lg:flex">
+      <div className="shadow-inner-right border-border hidden h-screen w-[300px] shrink-0 flex-col items-start justify-start gap-6 border-r-[1px] lg:flex">
         <div className="flex w-full items-center justify-between px-4 pt-1.5">
           <Button
-            className="hover:bg-gray-100"
+            className="hover:bg-accent"
             variant="ghost"
             onClick={() => setChatHistoryOpen((p) => !p)}
           >

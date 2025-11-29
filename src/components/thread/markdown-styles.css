@@ -37,3 +37,16 @@
 .markdown-content tr:nth-child(even) {
   background-color: #f9f9f9;
 }
+
+.dark .markdown-content th {
+  background-color: var(--muted);
+  border-color: var(--border);
+}
+
+.dark .markdown-content tr:nth-child(even) {
+  background-color: var(--muted);
+}
+
+.dark .markdown-content td {
+  border-color: var(--border);
+}

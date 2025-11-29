@@ -41,6 +41,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { ProfileLogoSVG } from "../icons/profile";
+import { ThemeToggle } from "../theme-toggle";
 import {
   Tooltip,
   TooltipContent,
@@ -144,13 +145,16 @@ function PersonalizedGreeting({ name }: { name: string | null }) {
 }
 
 const sampleMessages = [
-  "List all redis that are used by apiproxy",
-  "List all maxmind databases used by apiproxy",
-  "List all database hosts used in content-platform team",
-  "Show me all configurations in monetization-middleware service",
-  "List some unused resources in GCP for cost optimization",
-  "Query GCP assets and list all GKE clusters that apiproxy are deployed in. And what are their version?",
+  "What happen in this incident: Q1AKBW9VWRF3L7 and what might have caused it?",
+  "I am a new joiner and assigned to work on renuka service. What database does it connect to? What are the GCP resources that it uses? Where is it deployed?",
+  "We're deprecating monetization-middleware service, list all the resources that we need to clean up.",
+  "On average, how many time do we deploy to production per day?",
+  "We want to upgrade postgres 15. List all applications/services that use these postgres 15 databases. Cross check the DB's ip address with dns records. Cross check these IPs and dns domains with service configs to get final list of affected applications/services.",
+  "List all database used in content-platform team.",
+  "Show me all configurations in monetization-middleware service.",
+  "What can we do to save costs on GCP?",
   "List all affected resources by the email in this pdf/image <Upload PDF or Image>",
+  "List all redis VM that renuka service use and show their os, subnet and specs.",
 ];
 
 function SampleMessages({
@@ -159,9 +163,11 @@ function SampleMessages({
   onSelectMessage: (message: string) => void;
 }) {
   return (
-    <div className="rounded-lg p-4">
-      <h2 className="mb-2 font-semibold text-gray-800">Sample messages:</h2>
-      <ul className="list-inside list-decimal text-gray-700">
+    <div className="max-w-4xl text-justify rounded-lg p-4">
+      <h2 className="mb-2 font-semibold text-gray-800 dark:text-gray-200">
+        Sample messages:
+      </h2>
+      <ul className="list-inside list-decimal text-gray-700 dark:text-gray-300">
         {sampleMessages.map((msg, i) => (
           <li
             key={i}
@@ -192,7 +198,7 @@ function TemporaryChatToggle({
       />
       <Label
         htmlFor="temporary-chat"
-        className="cursor-pointer text-sm text-gray-600"
+        className="cursor-pointer text-sm text-gray-600 dark:text-gray-300"
       >
         Temporary Chat
       </Label>
@@ -655,12 +661,14 @@ export function Thread() {
     <div
       className={cn(
         "relative flex h-screen w-full overflow-hidden transition-colors duration-300",
-        isTemporaryActive && !chatStarted ? "bg-gray-200" : "bg-white",
+        isTemporaryActive && !chatStarted
+          ? "dark:bg-muted bg-gray-200"
+          : "bg-background",
       )}
     >
       <div className="relative hidden lg:flex">
         <motion.div
-          className="absolute z-20 h-full overflow-hidden border-r bg-white"
+          className="bg-background absolute z-20 h-full overflow-hidden border-r"
           style={{ width: 300 }}
           animate={
             isLargeScreen
@@ -740,6 +748,7 @@ export function Thread() {
                     }
                   />
                 )}
+                <ThemeToggle />
                 <ProfileAvatar gcpIapEmail={gcpIapEmail} />
               </div>
             </div>
@@ -749,8 +758,8 @@ export function Thread() {
               className={cn(
                 "relative z-10 flex items-center justify-between gap-3 p-2",
                 isTemporaryActive && chatStarted
-                  ? "to-gray-0 bg-gradient-to-b from-gray-300 via-gray-200"
-                  : "bg-white",
+                  ? "to-gray-0 dark:from-muted dark:via-muted/50 dark:to-background bg-gradient-to-b from-gray-300 via-gray-200"
+                  : "bg-background",
               )}
             >
               <div className="relative flex items-center justify-start gap-2">
@@ -820,6 +829,7 @@ export function Thread() {
                       onToggle={() => {}}
                     />
                   )}
+                  <ThemeToggle />
                   <ProfileAvatar gcpIapEmail={gcpIapEmail} />
                 </div>
               </div>
@@ -880,7 +890,7 @@ export function Thread() {
                                       return next;
                                     });
                                   }}
-                                  className="ml-2 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+                                  className="ml-2 flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
                                 >
                                   {isExpanded ? (
                                     <ChevronDown className="h-4 w-4" />
@@ -899,7 +909,7 @@ export function Thread() {
                                     process
                                   </span>
                                 </button>
-                                <div className="flex items-center gap-1 text-gray-500">
+                                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-300">
                                   (
                                   <Switch
                                     id={`toggle-tools-${groupKey}`}
@@ -913,7 +923,7 @@ export function Thread() {
                                   <Label
                                     htmlFor={`toggle-tools-${groupKey}`}
                                     className={cn(
-                                      "text-sm text-gray-600",
+                                      "text-sm text-gray-600 dark:text-gray-300",
                                       isExpanded
                                         ? "cursor-pointer"
                                         : "cursor-not-allowed opacity-50",
@@ -1112,7 +1122,7 @@ export function Thread() {
                             />
                             <Label
                               htmlFor="render-tool-calls"
-                              className="text-sm text-gray-600"
+                              className="text-sm text-gray-600 dark:text-gray-300"
                             >
                               Show Tool Calls
                             </Label>
@@ -1122,8 +1132,8 @@ export function Thread() {
                           htmlFor="file-input"
                           className="flex cursor-pointer items-center gap-2"
                         >
-                          <Plus className="size-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">
+                          <Plus className="size-5 text-gray-600 dark:text-gray-300" />
+                          <span className="text-sm text-gray-600 dark:text-gray-300">
                             Upload PDF or Image
                           </span>
                         </Label>
