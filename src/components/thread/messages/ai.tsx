@@ -189,7 +189,9 @@ export function AssistantMessage({
         <div className="mt-2 mr-auto flex items-start gap-2">
           <div className="flex flex-col gap-1">
             {thinkingText && (
-              <div className="text-sm text-gray-700">{thinkingText}</div>
+              <div className="text-sm whitespace-pre-line text-gray-700">
+                {thinkingText}
+              </div>
             )}
             {/* Only show aggregated usage if calculated */}
             {aggregatedUsage && <TokenUsageDisplay usage={aggregatedUsage} />}
@@ -290,7 +292,9 @@ export function AssistantMessageLoading() {
   return (
     <div className="mr-auto flex items-start gap-2">
       <div className="bg-muted flex h-8 items-center gap-1 rounded-2xl px-4 py-2">
-        <span className="mr-1 text-sm animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600 bg-[length:200%_100%] bg-clip-text text-transparent">Cooking</span>
+        <span className="mr-1 animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-gray-600 via-gray-400 to-gray-600 bg-[length:200%_100%] bg-clip-text text-sm text-transparent">
+          Cooking
+        </span>
         <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
         <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>
         <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_1s_infinite] rounded-full"></div>

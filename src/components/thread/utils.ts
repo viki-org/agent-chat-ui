@@ -27,24 +27,23 @@ export function getContentString(content: Message["content"]): string {
 export function extractThinkingFromMessage(message: any): {
   thinking: string | null;
 } {
-  if (!message)
-    return { thinking: null };
+  if (!message) return { thinking: null };
 
-  let thinking: string | null = null;
+  const thinkingParts: string[] = [];
 
-  // Check tool_calls array for fields
+  // Check tool_calls array for fields and collect ALL thinking values
   if (message.tool_calls && Array.isArray(message.tool_calls)) {
     for (const toolCall of message.tool_calls) {
-      if (toolCall.args?.thinking && !thinking) {
-        thinking = toolCall.args.thinking;
+      if (toolCall.args?.thinking) {
+        thinkingParts.push(toolCall.args.thinking);
       }
     }
   }
 
   // Check additional_kwargs for fields
   if (message.additional_kwargs) {
-    if (message.additional_kwargs.thinking && !thinking) {
-      thinking = message.additional_kwargs.thinking;
+    if (message.additional_kwargs.thinking) {
+      thinkingParts.push(message.additional_kwargs.thinking);
     }
   }
 
@@ -57,8 +56,8 @@ export function extractThinkingFromMessage(message: any): {
       if (toolCall.function?.arguments) {
         try {
           const args = JSON.parse(toolCall.function.arguments);
-          if (args.thinking && !thinking) {
-            thinking = args.thinking;
+          if (args.thinking) {
+            thinkingParts.push(args.thinking);
           }
         } catch {
           // Not valid JSON or no field
@@ -71,13 +70,16 @@ export function extractThinkingFromMessage(message: any): {
   if (typeof message.content === "string") {
     try {
       const parsed = JSON.parse(message.content);
-      if (parsed.thinking && !thinking) {
-        thinking = parsed.thinking;
+      if (parsed.thinking) {
+        thinkingParts.push(parsed.thinking);
       }
     } catch {
       // Not JSON, ignore
     }
   }
+
+  // Join all thinking parts with newlines, or return null if none found
+  const thinking = thinkingParts.length > 0 ? thinkingParts.join("\n") : null;
 
   return { thinking };
 }
