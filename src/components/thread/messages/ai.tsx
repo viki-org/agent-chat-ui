@@ -109,11 +109,11 @@ function TokenUsageDisplay({ usage }: { usage: any }) {
     <div className="text-xs text-gray-500 italic">
       Token count: Input: {input_tokens}{" "}
       {cacheRead > 0 && (
-        <span className="text-gray-400">(Cache read: {cacheRead})</span>
+        <span className=" text-gray-400 dark:text-gray-600">(Cache read: {cacheRead})</span>
       )}{" "}
       • Output: {output_tokens}{" "}
       {reasoning > 0 && (
-        <span className="text-gray-400">(Reasoning: {reasoning})</span>
+        <span className=" text-gray-400 dark:text-gray-600">(Reasoning: {reasoning})</span>
       )}{" "}
       • Total: {total_tokens}
     </div>
@@ -194,7 +194,7 @@ export function AssistantMessage({
         <div className="mr-auto flex items-start gap-2">
           <div className="flex flex-col gap-1">
             {thinkingText && (
-              <div className="text-sm whitespace-pre-line text-gray-700">
+              <div className="text-sm whitespace-pre-line text-gray-700 dark:text-gray-200">
                 {thinkingText}
               </div>
             )}
