@@ -123,7 +123,7 @@ function ThreadHistoryItemActions({
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="text-destructive dark:text-destructive-foreground hover:bg-destructive/10 hover:text-destructive-foreground dark:hover:bg-destructive/30 dark:hover:text-destructive-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isDeleting ? (
               <LoaderCircle className="mr-3 h-4 w-4 animate-spin" />
@@ -211,7 +211,7 @@ function ThreadList({
               disabled={isDeleting || isDuplicating}
               className={cn(
                 "w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75",
-                t.thread_id === threadId && "bg-accent dark:bg-gray-700",
+                t.thread_id === threadId && "bg-accent",
               )}
               onClick={(e) => {
                 e.preventDefault();
