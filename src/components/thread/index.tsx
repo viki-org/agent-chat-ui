@@ -283,7 +283,7 @@ function MessageCard({
 }) {
   return (
     <button
-      className="w-full cursor-pointer rounded-xl bg-white/50 px-6 py-4 text-left text-sm text-slate-600 shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:bg-white/80 hover:text-blue-600 hover:shadow-lg dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-cyan-300 dark:hover:shadow-[0_4px_20px_rgba(0,255,255,0.15)]"
+      className="w-full cursor-pointer rounded-xl bg-white/35 px-6 py-4 text-left text-sm text-slate-600 transition-all duration-300 hover:scale-[1.02] hover:bg-white/40 hover:text-blue-500 hover:shadow-lg dark:bg-slate-500/10 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-cyan-300 dark:hover:shadow-[0_4px_20px_rgba(0,255,255,0.15)]"
       onClick={() => onClick(msg)}
       style={{
         animation: `float ${8 + (delay % 3) * 2}s ease-in-out infinite`,
