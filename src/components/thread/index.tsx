@@ -32,6 +32,8 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -176,14 +178,14 @@ function SampleMessages({
   const col3 = sampleMessages.slice(10, 15);
 
   return (
-    <div className="relative h-[500px] w-full max-w-6xl overflow-hidden px-4">
+    <div className="relative h-[400px] w-full max-w-6xl overflow-hidden px-4">
       <h2 className="mb-6 text-center text-sm font-medium tracking-wider text-slate-500 uppercase dark:text-slate-400">
         Try asking
       </h2>
 
       {/* Gradient fade edges (top/bottom) using mask-image for true transparency */}
       <div
-        className="relative h-[450px] w-full overflow-hidden"
+        className="relative h-[350px] w-full overflow-hidden"
         style={{
           maskImage:
             "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, transparent 100%)",
@@ -338,6 +340,7 @@ export function Thread() {
     parseAsBoolean.withDefault(true),
   );
   const [input, setInput] = useState("");
+  const [isChatBoxExpanded, setIsChatBoxExpanded] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const {
     contentBlocks,
@@ -646,9 +649,11 @@ export function Thread() {
     setExpandedIntermediates(new Set());
     setStreamingStartMessageCount(null);
     setOptimisticMessage(null);
+    setIsChatBoxExpanded(false);
   };
 
   useEffect(() => {
+    setIsChatBoxExpanded(false);
     if (threadId === null) {
       inputRef.current?.focus();
     }
@@ -742,6 +747,7 @@ export function Thread() {
 
     setInput("");
     setContentBlocks([]);
+    setIsChatBoxExpanded(false);
   };
 
   const handleRegenerate = (
@@ -1201,28 +1207,50 @@ export function Thread() {
                         blocks={contentBlocks}
                         onRemove={removeBlock}
                       />
-                      <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onPaste={handlePaste}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            !e.shiftKey &&
-                            !e.metaKey &&
-                            !e.nativeEvent.isComposing
-                          ) {
-                            e.preventDefault();
-                            const el = e.target as HTMLElement | undefined;
-                            const form = el?.closest("form");
-                            form?.requestSubmit();
+                      <div className="relative">
+                        <textarea
+                          ref={inputRef}
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          onPaste={handlePaste}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              !e.shiftKey &&
+                              !e.metaKey &&
+                              !e.nativeEvent.isComposing
+                            ) {
+                              e.preventDefault();
+                              const el = e.target as HTMLElement | undefined;
+                              const form = el?.closest("form");
+                              form?.requestSubmit();
+                            }
+                          }}
+                          placeholder="Type your message..."
+                          className={cn(
+                            "w-full resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 transition-all duration-300 outline-none focus:ring-0 focus:outline-none",
+                            isChatBoxExpanded
+                              ? "h-[60vh]"
+                              : "h-auto min-h-[52px]",
+                          )}
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground absolute top-2 right-2"
+                          onClick={() =>
+                            setIsChatBoxExpanded(!isChatBoxExpanded)
                           }
-                        }}
-                        placeholder="Type your message..."
-                        className="resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 transition-colors duration-300 outline-none focus:ring-0 focus:outline-none"
-                        autoFocus
-                      />
+                        >
+                          {isChatBoxExpanded ? (
+                            <Minimize2 className="h-4 w-4" />
+                          ) : (
+                            <Maximize2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
 
                       <div className="flex items-center gap-6 p-2 pt-4">
                         <div>
@@ -1281,7 +1309,7 @@ export function Thread() {
                       </div>
                     </form>
                   </div>
-                  {!chatStarted && (
+                  {!chatStarted && !isChatBoxExpanded && (
                     <SampleMessages onSelectMessage={setInput} />
                   )}
                 </div>
