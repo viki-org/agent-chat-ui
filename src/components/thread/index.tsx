@@ -836,7 +836,7 @@ export function Thread() {
               <div>
                 {(!chatHistoryOpen || !isLargeScreen) && (
                   <Button
-                    className="hover:bg-gray-100"
+                    className="hover:bg-gray-200 dark:hover:bg-gray-800"
                     variant="ghost"
                     onClick={() => setChatHistoryOpen((p) => !p)}
                   >
@@ -1186,7 +1186,8 @@ export function Thread() {
                   <div
                     ref={dropRef}
                     className={cn(
-                      "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all duration-300",
+                      "relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all duration-300",
+                      chatStarted ? "bg-muted" : "bg-white dark:bg-slate-800",
                       dragOver
                         ? "border-primary border-2 border-dotted"
                         : "border border-solid",
