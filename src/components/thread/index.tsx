@@ -58,6 +58,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { useThreads } from "@/providers/Thread";
+import { UniverseBackground } from "./UniverseBackground";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -138,8 +139,10 @@ function PersonalizedGreeting({ name }: { name: string | null }) {
   if (!isMounted || !name) return null;
 
   return (
-    <div className="mb-4 rounded-lg bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 bg-clip-text p-4 text-center text-4xl font-extrabold text-transparent">
-      Hello, {name}
+    <div className="mb-4 text-center">
+      <h1 className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-6xl font-black text-transparent drop-shadow-lg dark:from-cyan-400 dark:via-blue-500 dark:to-purple-600 dark:drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]">
+        Hello, {name}
+      </h1>
     </div>
   );
 }
@@ -163,17 +166,18 @@ function SampleMessages({
   onSelectMessage: (message: string) => void;
 }) {
   return (
-    <div className="max-w-4xl rounded-lg p-4 text-justify">
-      <h2 className="mb-2 font-semibold text-gray-800 dark:text-gray-200">
-        Sample messages:
+    <div className="max-w-4xl rounded-2xl border border-slate-200 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-black/40">
+      <h2 className="mb-6 border-b border-slate-200 pb-2 text-lg font-bold tracking-wider text-slate-700 uppercase dark:border-white/10 dark:text-cyan-400">
+        Sample Messages
       </h2>
-      <ul className="list-inside list-decimal text-gray-700 dark:text-gray-300">
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {sampleMessages.map((msg, i) => (
           <li
             key={i}
-            className="cursor-pointer hover:underline"
+            className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white/40 p-3 text-sm text-slate-600 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md dark:border-white/5 dark:bg-white/5 dark:text-gray-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-200 dark:hover:shadow-[0_0_15px_rgba(0,255,255,0.1)]"
             onClick={() => onSelectMessage(msg)}
           >
+            <div className="absolute top-0 left-0 h-full w-1 bg-blue-500 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-cyan-500" />
             {msg}
           </li>
         ))}
@@ -661,11 +665,11 @@ export function Thread() {
     <div
       className={cn(
         "relative flex h-screen w-full overflow-hidden transition-colors duration-300",
-        isTemporaryActive && !chatStarted
-          ? "dark:bg-muted bg-gray-200"
-          : "bg-background",
+        !chatStarted ? "bg-transparent" : "bg-background",
       )}
     >
+      {/* Animated universe background for landing page */}
+      {!chatStarted && <UniverseBackground />}
       <div className="relative hidden lg:flex">
         <motion.div
           className="bg-background absolute z-20 h-full overflow-hidden border-r"
@@ -758,7 +762,7 @@ export function Thread() {
               className={cn(
                 "relative z-10 flex items-center justify-between gap-3 p-2",
                 isTemporaryActive && chatStarted
-                  ? "to-gray-0 dark:from-gray-700 dark:via-muted/50 dark:to-background bg-gradient-to-b from-gray-300 via-gray-200"
+                  ? "to-gray-0 dark:via-muted/50 dark:to-background bg-gradient-to-b from-gray-300 via-gray-200 dark:from-gray-700"
                   : "bg-background",
               )}
             >
