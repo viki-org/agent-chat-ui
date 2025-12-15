@@ -147,6 +147,7 @@ function PersonalizedGreeting({ name }: { name: string | null }) {
   );
 }
 
+// Longer list of sample messages for the vertical marquee
 const sampleMessages = [
   "What happen in this incident: Q1AKBW9VWRF3L7 and what might have caused it?",
   "I am a new joiner and assigned to work on renuka service. What database does it connect to? What are the GCP resources that it uses? Where is it deployed?",
@@ -158,6 +159,10 @@ const sampleMessages = [
   "What can we do to save costs on GCP?",
   "List all affected resources by the email in this pdf/image <Upload PDF or Image>",
   "List all redis VM that renuka service use and show their os, subnet and specs.",
+  "What are the open high-severity alerts right now?",
+  "Show me the deployment history for 'dam-middleware-api' over the last week.",
+  "Identify any unused load balancers in the staging environment.",
+  "Generate a topology map of the production 'renuka' service dependencies.",
 ];
 
 function SampleMessages({
@@ -165,24 +170,126 @@ function SampleMessages({
 }: {
   onSelectMessage: (message: string) => void;
 }) {
+  // Split messages into columns
+  const col1 = sampleMessages.slice(0, 5);
+  const col2 = sampleMessages.slice(5, 10);
+  const col3 = sampleMessages.slice(10, 15);
+
   return (
-    <div className="max-w-4xl rounded-2xl border border-slate-200 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-black/40">
-      <h2 className="mb-6 border-b border-slate-200 pb-2 text-lg font-bold tracking-wider text-slate-700 uppercase dark:border-white/10 dark:text-cyan-400">
-        Sample Messages
+    <div className="relative h-[500px] w-full max-w-6xl overflow-hidden px-4">
+      <h2 className="mb-6 text-center text-sm font-medium tracking-wider text-slate-500 uppercase dark:text-slate-400">
+        Try asking
       </h2>
-      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {sampleMessages.map((msg, i) => (
-          <li
-            key={i}
-            className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-white/40 p-3 text-sm text-slate-600 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 hover:shadow-md dark:border-white/5 dark:bg-white/5 dark:text-gray-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-200 dark:hover:shadow-[0_0_15px_rgba(0,255,255,0.1)]"
-            onClick={() => onSelectMessage(msg)}
-          >
-            <div className="absolute top-0 left-0 h-full w-1 bg-blue-500 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-cyan-500" />
-            {msg}
-          </li>
-        ))}
-      </ul>
+
+      {/* Gradient fade edges (top/bottom) using mask-image for true transparency */}
+      <div
+        className="relative h-[450px] w-full overflow-hidden"
+        style={{
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, transparent 100%)",
+        }}
+      >
+        <div className="grid h-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Column 1 - Scroll Up */}
+          <div className="relative flex h-full flex-col">
+            <div className="flex animate-[scrollUp_40s_linear_infinite] flex-col gap-4 hover:[animation-play-state:paused]">
+              {[...col1, ...col1, ...col1].map((msg, i) => (
+                <MessageCard
+                  key={`col1-${i}`}
+                  msg={msg}
+                  onClick={onSelectMessage}
+                  delay={i * 0.1}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Column 2 - Scroll Down */}
+          <div className="relative hidden h-full flex-col md:flex">
+            <div className="flex animate-[scrollDown_50s_linear_infinite] flex-col gap-4 hover:[animation-play-state:paused]">
+              {[...col2, ...col2, ...col2].map((msg, i) => (
+                <MessageCard
+                  key={`col2-${i}`}
+                  msg={msg}
+                  onClick={onSelectMessage}
+                  delay={i * 0.1 + 0.5}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Column 3 - Scroll Up (Slower) */}
+          <div className="relative hidden h-full flex-col lg:flex">
+            <div className="flex animate-[scrollUp_60s_linear_infinite] flex-col gap-4 hover:[animation-play-state:paused]">
+              {[...col3, ...col3, ...col3].map((msg, i) => (
+                <MessageCard
+                  key={`col3-${i}`}
+                  msg={msg}
+                  onClick={onSelectMessage}
+                  delay={i * 0.1 + 1}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes scrollUp {
+          0% {
+            transform: translateY(0);
+          }
+          100% {
+            transform: translateY(-45.33%);
+          }
+        }
+        @keyframes scrollDown {
+          0% {
+            transform: translateY(-45.33%);
+          }
+          100% {
+            transform: translateY(0);
+          }
+        }
+        @keyframes float {
+          0%,
+          100% {
+            transform: translate(0, 0);
+          }
+          33% {
+            transform: translate(3px, -5px);
+          }
+          50% {
+            transform: translate(-3px, 3px);
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+function MessageCard({
+  msg,
+  onClick,
+  delay,
+}: {
+  msg: string;
+  onClick: (m: string) => void;
+  delay: number;
+}) {
+  return (
+    <button
+      className="w-full cursor-pointer rounded-xl bg-white/50 px-6 py-4 text-left text-sm text-slate-600 shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:bg-white/80 hover:text-blue-600 hover:shadow-lg dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-cyan-300 dark:hover:shadow-[0_4px_20px_rgba(0,255,255,0.15)]"
+      onClick={() => onClick(msg)}
+      style={{
+        animation: `float ${8 + (delay % 3) * 2}s ease-in-out infinite`,
+        animationDelay: `${delay}s`,
+      }}
+    >
+      {msg}
+    </button>
   );
 }
 
