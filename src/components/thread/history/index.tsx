@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useThreads } from "@/providers/Thread";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useEffect, useState, useRef } from "react";
@@ -22,6 +23,7 @@ import {
   Trash2,
   LoaderCircle,
   Copy,
+  Pencil,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,7 @@ function ThreadHistoryItemActions({
   threadId,
   onDelete,
   onDuplicate,
+  onRename,
   isOpen,
   setIsOpen,
   isDeleting,
@@ -38,6 +41,7 @@ function ThreadHistoryItemActions({
   threadId: string;
   onDelete: (threadId: string) => void;
   onDuplicate: (threadId: string) => void;
+  onRename: (threadId: string) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   isDeleting: boolean;
@@ -51,6 +55,12 @@ function ThreadHistoryItemActions({
     currentUrl.searchParams.set("threadId", threadId);
     navigator.clipboard.writeText(currentUrl.toString());
     toast.success("Shareable URL copied to clipboard");
+    setIsOpen(false);
+  };
+
+  const handleRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRename(threadId);
     setIsOpen(false);
   };
 
@@ -109,6 +119,13 @@ function ThreadHistoryItemActions({
             <span>Share</span>
           </button>
           <button
+            onClick={handleRename}
+            className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm"
+          >
+            <Pencil className="mr-3 h-4 w-4" />
+            <span>Rename</span>
+          </button>
+          <button
             onClick={handleDuplicate}
             disabled={isDuplicating}
             className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
@@ -151,9 +168,12 @@ function ThreadList({
     deletingThreadIds,
     duplicateThread,
     duplicatingThreadIds,
+    renameThread,
     setIsTemporaryMode,
   } = useThreads();
   const [openPopupId, setOpenPopupId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const handleDelete = (id: string) => {
     deleteThread(id);
@@ -165,6 +185,19 @@ function ThreadList({
 
   const handleDuplicate = (id: string) => {
     duplicateThread(id);
+  };
+
+  const handleRenameSubmit = async (id: string) => {
+    if (renameValue.trim() && renameValue.trim() !== "") {
+      await renameThread(id, renameValue.trim());
+    }
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const startRename = (id: string, currentTitle: string) => {
+    setRenamingId(id);
+    setRenameValue(currentTitle);
   };
 
   return (
@@ -206,33 +239,56 @@ function ThreadList({
               isDeleting && "opacity-75",
             )}
           >
-            <Button
-              variant="ghost"
-              disabled={isDeleting || isDuplicating}
-              className={cn(
-                "w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75",
-                t.thread_id === threadId && "bg-accent",
-              )}
-              onClick={(e) => {
-                e.preventDefault();
-                onThreadClick?.(t.thread_id);
-                if (t.thread_id === threadId) return;
-                setIsTemporaryMode(false);
-                setThreadId(t.thread_id);
-              }}
-            >
-              <p className="truncate text-ellipsis">{itemText}</p>
-              {isDeleting && (
-                <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
-              )}
-              {isDuplicating && (
-                <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
-              )}
-            </Button>
+            {renamingId === t.thread_id ? (
+              <div className="bg-accent flex w-full items-center rounded-md px-1 py-1">
+                <Input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => handleRenameSubmit(t.thread_id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleRenameSubmit(t.thread_id);
+                    } else if (e.key === "Escape") {
+                      setRenamingId(null);
+                      setRenameValue("");
+                    }
+                  }}
+                  autoFocus
+                  onFocus={(e) => e.target.select()}
+                  className="h-8"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                disabled={isDeleting || isDuplicating}
+                className={cn(
+                  "w-full items-start justify-start pr-8 text-left font-normal disabled:opacity-75",
+                  t.thread_id === threadId && "bg-accent",
+                )}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onThreadClick?.(t.thread_id);
+                  if (t.thread_id === threadId) return;
+                  setIsTemporaryMode(false);
+                  setThreadId(t.thread_id);
+                }}
+              >
+                <p className="truncate text-ellipsis">{itemText}</p>
+                {isDeleting && (
+                  <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
+                )}
+                {isDuplicating && (
+                  <LoaderCircle className="ml-2 h-4 w-4 flex-shrink-0 animate-spin" />
+                )}
+              </Button>
+            )}
             <ThreadHistoryItemActions
               threadId={t.thread_id}
               onDelete={handleDelete}
               onDuplicate={handleDuplicate}
+              onRename={() => startRename(t.thread_id, itemText)}
               isOpen={isPopupOpen}
               isDeleting={isDeleting}
               isDuplicating={isDuplicating}

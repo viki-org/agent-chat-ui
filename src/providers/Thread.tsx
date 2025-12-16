@@ -30,6 +30,8 @@ interface ThreadContextType {
   isTemporaryMode: boolean;
   setIsTemporaryMode: Dispatch<SetStateAction<boolean>>;
   isCurrentThreadTemporary: (threadId: string | null) => boolean;
+  renameThread: (threadId: string, title: string) => Promise<void>;
+  renamingThreadIds: Set<string>;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -76,6 +78,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   );
   const [gcpIapUid] = useState<string | null>(getGcpIapUid());
   const [gcpIapEmail] = useState<string | null>(getGcpIapEmail());
+  const [renamingThreadIds, setRenamingThreadIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [isTemporaryMode, setIsTemporaryMode] = useState(false);
   const [allThreadsCache, setAllThreadsCache] = useState<Thread[]>([]);
 
@@ -216,6 +221,70 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     [apiUrl, duplicatingThreadIds, getThreads],
   );
 
+  const renameThread = useCallback(
+    async (threadId: string, title: string) => {
+      if (!apiUrl) return;
+
+      if (renamingThreadIds.has(threadId)) {
+        return;
+      }
+
+      setRenamingThreadIds((prev) => new Set(prev).add(threadId));
+
+      const client = createClient(apiUrl, getApiKey() ?? undefined);
+
+      try {
+        const updatePromise = client.threads.update(threadId, {
+          metadata: { title },
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 15000),
+        );
+
+        await Promise.race([updatePromise, timeoutPromise]);
+
+        // Optimistically update the thread title in the list
+        setThreads((prevThreads) =>
+          prevThreads.map((t) => {
+            if (t.thread_id === threadId) {
+              return {
+                ...t,
+                metadata: {
+                  ...t.metadata,
+                  title,
+                },
+              };
+            }
+            return t;
+          }),
+        );
+
+        toast.success("Chat renamed successfully.");
+      } catch (error) {
+        console.error("Failed to rename thread:", error);
+        if (error instanceof Error && error.message === "Request timeout") {
+          toast.error(
+            "Rename request timed out. Please check your connection and try again.",
+            {
+              richColors: true,
+            },
+          );
+        } else {
+          toast.error("Failed to rename chat. Please try again later.", {
+            richColors: true,
+          });
+        }
+      } finally {
+        setRenamingThreadIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(threadId);
+          return newSet;
+        });
+      }
+    },
+    [apiUrl, renamingThreadIds],
+  );
+
   const isCurrentThreadTemporary = useCallback(
     (threadId: string | null) => {
       if (!threadId) return false;
@@ -238,6 +307,8 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     duplicateThread,
     duplicatingThreadIds,
     isTemporaryMode,
+    renameThread,
+    renamingThreadIds,
     setIsTemporaryMode,
     isCurrentThreadTemporary,
   };
