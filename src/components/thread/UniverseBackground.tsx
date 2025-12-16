@@ -29,6 +29,15 @@ const twinkleAnimations = [
   "twinkle6",
 ];
 
+const twinkleDownAnimations = [
+  "twinkleDown1",
+  "twinkleDown2",
+  "twinkleDown3",
+  "twinkleDown4",
+  "twinkleDown5",
+  "twinkleDown6",
+];
+
 export function UniverseBackground() {
   // Generate star groups based on GROUPS_PER_SIZE
   const smallStarGroups = useMemo(
@@ -86,19 +95,19 @@ export function UniverseBackground() {
           className="absolute h-[2px] w-[2px] text-slate-800 dark:text-cyan-100"
           style={{
             boxShadow: stars,
-            animation: `${twinkleAnimations[(i + 2) % twinkleAnimations.length]} ${130 + i * 20}s linear infinite`,
+            animation: `${twinkleDownAnimations[(i + 2) % twinkleDownAnimations.length]} ${130 + i * 20}s linear infinite`,
           }}
         />
       ))}
 
-      {/* Large stars - dynamically generated groups */}
+      {/* Large stars - dynamically generated groups - moving down */}
       {largeStarGroups.map((stars, i) => (
         <div
           key={`large-${i}`}
           className="absolute h-[3px] w-[3px] rounded-full text-indigo-700 dark:text-cyan-200"
           style={{
             boxShadow: stars,
-            animation: `${twinkleAnimations[(i + 4) % twinkleAnimations.length]} ${180 + i * 20}s linear infinite`,
+            animation: `${twinkleDownAnimations[(i + 4) % twinkleDownAnimations.length]} ${180 + i * 20}s linear infinite`,
           }}
         />
       ))}
@@ -210,6 +219,117 @@ export function UniverseBackground() {
           }
           72% {
             transform: translate(50px, -780px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown1 {
+          0% {
+            transform: translate(0, 0);
+          }
+          20% {
+            transform: translate(-80px, 300px);
+          }
+          40% {
+            transform: translate(120px, 600px);
+          }
+          60% {
+            transform: translate(-40px, 900px);
+          }
+          80% {
+            transform: translate(60px, 450px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown2 {
+          0% {
+            transform: translate(0, 0);
+          }
+          15% {
+            transform: translate(150px, 200px);
+          }
+          35% {
+            transform: translate(-100px, 500px);
+          }
+          55% {
+            transform: translate(80px, 800px);
+          }
+          75% {
+            transform: translate(-60px, 400px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown3 {
+          0% {
+            transform: translate(0, 0);
+          }
+          25% {
+            transform: translate(-120px, 400px);
+          }
+          50% {
+            transform: translate(60px, 700px);
+          }
+          75% {
+            transform: translate(-80px, 350px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown4 {
+          0% {
+            transform: translate(0, 0);
+          }
+          18% {
+            transform: translate(100px, 250px);
+          }
+          42% {
+            transform: translate(-70px, 550px);
+          }
+          68% {
+            transform: translate(110px, 300px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown5 {
+          0% {
+            transform: translate(0, 0);
+          }
+          30% {
+            transform: translate(-90px, 350px);
+          }
+          60% {
+            transform: translate(40px, 650px);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
+
+        @keyframes twinkleDown6 {
+          0% {
+            transform: translate(0, 0);
+          }
+          22% {
+            transform: translate(70px, 280px);
+          }
+          48% {
+            transform: translate(-130px, 520px);
+          }
+          72% {
+            transform: translate(50px, 780px);
           }
           100% {
             transform: translate(0, 0);
