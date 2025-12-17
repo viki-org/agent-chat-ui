@@ -13,7 +13,11 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => {
+        const newTheme = theme === "dark" ? "light" : "dark";
+        setTheme(newTheme);
+        localStorage.setItem("chat-theme", newTheme);
+      }}
     >
       <Sun className="h-[1.2rem] w-[1.2rem] scale-110 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
       <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-10 rotate-90 transition-all dark:scale-100 dark:rotate-0" />

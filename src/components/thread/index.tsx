@@ -44,6 +44,7 @@ import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { ProfileLogoSVG } from "../icons/profile";
 import { ThemeToggle } from "../theme-toggle";
+import { useTheme } from "next-themes";
 import {
   Tooltip,
   TooltipContent,
@@ -327,6 +328,7 @@ export function Thread() {
     setIsTemporaryMode,
     isCurrentThreadTemporary,
   } = useThreads();
+  const { setTheme } = useTheme();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
@@ -766,6 +768,19 @@ export function Thread() {
   };
 
   const chatStarted = !!threadId || !!messages.length;
+
+  useEffect(() => {
+    if (!chatStarted) {
+      setTheme("dark");
+    } else {
+      // Restore previous theme if we have one saved
+      const chatTheme = localStorage.getItem("chat-theme");
+      if (chatTheme) {
+        setTheme(chatTheme);
+      }
+    }
+  }, [chatStarted, setTheme]);
+
   const hasNoAIOrToolMessages = !messages.find(
     (m) => m.type === "ai" || m.type === "tool",
   );
@@ -869,7 +884,7 @@ export function Thread() {
                     }
                   />
                 )}
-                <ThemeToggle />
+                {/* <ThemeToggle /> remove theme toggle in landing page */}
                 <ProfileAvatar gcpIapEmail={gcpIapEmail} />
               </div>
             </div>
