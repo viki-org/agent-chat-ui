@@ -717,6 +717,10 @@ export function Thread() {
       metadata.gcp_iap_uid = gcpIapUid;
     }
 
+    if (!threadId && gcpIapEmail) {
+      metadata.gcp_iap_email = gcpIapEmail;
+    }
+
     if (!threadId && isTemporaryMode) {
       metadata.temporary = "true";
     }
